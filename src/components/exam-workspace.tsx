@@ -1,0 +1,629 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  AlertCircle,
+  Check,
+  Copy,
+  Eraser,
+  ImagePlus,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
+
+import { PhotoAnnotator } from "@/components/photo-annotator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DEFAULT_PARAMS,
+  FORMULA,
+  LANDMARK_META,
+  LANDMARK_ORDER,
+  type EyeLandmarks,
+  type EyeMeasurement,
+  type EyeSide,
+  type FormulaParams,
+  type LandmarkId,
+  computeAngleLambda,
+  eyeLabel,
+  formatDeg,
+  formatMm,
+  lateralityLabel,
+  measureEye,
+  nextLandmark,
+} from "@/lib/lambda";
+import { DEMO_DISPLACEMENT_MM, createSyntheticEye } from "@/lib/synthetic-eye";
+import { cn } from "@/lib/utils";
+
+type EyeDraft = {
+  imageUrl: string | null;
+  fileName: string | null;
+  landmarks: EyeLandmarks;
+  isDemo: boolean;
+};
+
+const emptyEye = (): EyeDraft => ({
+  imageUrl: null,
+  fileName: null,
+  landmarks: {},
+  isDemo: false,
+});
+
+export function ExamWorkspace() {
+  const [patientRef, setPatientRef] = useState("");
+  const [params, setParams] = useState<FormulaParams>(DEFAULT_PARAMS);
+  const [od, setOd] = useState<EyeDraft>(emptyEye);
+  const [os, setOs] = useState<EyeDraft>(emptyEye);
+  const [activeEye, setActiveEye] = useState<EyeSide>("OD");
+  const [activeLandmark, setActiveLandmark] = useState<LandmarkId>("limbusTemporal");
+  const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+
+  const odMeasure = useMemo(() => measureEye("OD", od.landmarks, params), [od.landmarks, params]);
+  const osMeasure = useMemo(() => measureEye("OS", os.landmarks, params), [os.landmarks, params]);
+
+  const setCurrent = activeEye === "OD" ? setOd : setOs;
+
+  const handleFiles = async (fileList: FileList | null, eye: EyeSide) => {
+    const file = fileList?.[0];
+    if (!file) return;
+    const url = await fileToObjectUrl(file);
+    const setter = eye === "OD" ? setOd : setOs;
+    setter((prev) => {
+      if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
+      return {
+        imageUrl: url,
+        fileName: file.name,
+        landmarks: {},
+        isDemo: false,
+      };
+    });
+    setActiveEye(eye);
+    setActiveLandmark("limbusTemporal");
+  };
+
+  const loadDemo = (eye: EyeSide) => {
+    const synthetic = createSyntheticEye(eye, params);
+    const setter = eye === "OD" ? setOd : setOs;
+    setter((prev) => {
+      if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
+      return {
+        imageUrl: synthetic.dataUrl,
+        fileName: `exemple-${eye.toLowerCase()}.png`,
+        landmarks: {},
+        isDemo: true,
+      };
+    });
+    setActiveEye(eye);
+    setActiveLandmark("limbusTemporal");
+  };
+
+  const resetLandmarks = () => {
+    setCurrent((prev) => ({ ...prev, landmarks: {} }));
+    setActiveLandmark("limbusTemporal");
+  };
+
+  const resetEye = () => {
+    setCurrent((prev) => {
+      if (prev.imageUrl && prev.imageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(prev.imageUrl);
+      }
+      return emptyEye();
+    });
+    setActiveLandmark("limbusTemporal");
+  };
+
+  const handleLandmarksChange = (landmarks: EyeLandmarks) => {
+    setCurrent((prev) => ({ ...prev, landmarks }));
+  };
+
+  const copyReport = async () => {
+    const text = buildReport(patientRef, params, odMeasure, osMeasure);
+    await navigator.clipboard.writeText(text);
+    setCopyState("copied");
+    window.setTimeout(() => setCopyState("idle"), 1800);
+  };
+
+  return (
+    <section id="mesure" className="scroll-mt-24 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-medium tracking-[0.18em] text-primary uppercase">
+            Mesure
+          </p>
+          <h2 className="font-heading mt-1 text-3xl tracking-tight">
+            Examen photographique
+          </h2>
+          <p className="mt-2 max-w-2xl text-muted-foreground">
+            Chargez une photo par œil, placez les quatre points, et l’angle
+            lambda se calcule immédiatement. Rien n’est envoyé hors de cet
+            appareil.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={copyReport}>
+            {copyState === "copied" ? <Check /> : <Copy />}
+            {copyState === "copied" ? "Copié" : "Copier le compte-rendu"}
+          </Button>
+        </div>
+      </div>
+
+      <Alert>
+        <AlertCircle />
+        <AlertTitle>Formule {FORMULA.version}</AlertTitle>
+        <AlertDescription>
+          {FORMULA.expression}. {FORMULA.notes} Vous pourrez la remplacer d’un
+          seul module dès qu’elle sera transmise.
+        </AlertDescription>
+      </Alert>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)]">
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Photographies monoculaires</CardTitle>
+                <CardDescription>
+                  Cliquez pour poser le point actif, ou faites glisser un
+                  marqueur déjà placé. Une loupe suit le curseur.
+                </CardDescription>
+              </div>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground">Référence patient</span>
+                <Input
+                  value={patientRef}
+                  onChange={(event) => setPatientRef(event.target.value)}
+                  placeholder="Initiales ou n° dossier"
+                  className="w-full sm:w-52"
+                />
+              </label>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-4">
+            <Tabs
+              value={activeEye}
+              onValueChange={(value) => {
+                if (value !== "OD" && value !== "OS") return;
+                setActiveEye(value);
+                const draft = value === "OD" ? od : os;
+                setActiveLandmark(nextLandmark(draft.landmarks));
+              }}
+            >
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="OD" className="px-4">
+                  Œil droit · OD
+                  {odMeasure.status === "ok" && (
+                    <span className="ml-1.5 size-1.5 rounded-full bg-teal-600" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="OS" className="px-4">
+                  Œil gauche · OS
+                  {osMeasure.status === "ok" && (
+                    <span className="ml-1.5 size-1.5 rounded-full bg-teal-600" />
+                  )}
+                </TabsTrigger>
+              </TabsList>
+
+              {(["OD", "OS"] as const).map((eye) => (
+                <TabsContent key={eye} value={eye} className="space-y-4">
+                  <div
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = "copy";
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      handleFiles(event.dataTransfer.files, eye);
+                    }}
+                    className="space-y-4"
+                  >
+                  <EyeToolbar
+                    eye={eye}
+                    draft={eye === "OD" ? od : os}
+                    onFiles={(files) => handleFiles(files, eye)}
+                    onDemo={() => loadDemo(eye)}
+                    onResetPoints={resetLandmarks}
+                    onResetEye={resetEye}
+                  />
+                  <LandmarkPicker
+                    landmarks={eye === "OD" ? od.landmarks : os.landmarks}
+                    active={activeLandmark}
+                    onChange={setActiveLandmark}
+                  />
+                  <PhotoAnnotator
+                    eye={eye}
+                    imageUrl={eye === "OD" ? od.imageUrl : os.imageUrl}
+                    landmarks={eye === "OD" ? od.landmarks : os.landmarks}
+                    activeLandmark={activeLandmark}
+                    onLandmarksChange={handleLandmarksChange}
+                    onActiveLandmarkChange={setActiveLandmark}
+                  />
+                  {(eye === "OD" ? od : os).isDemo && (
+                    <p className="text-xs text-muted-foreground">
+                      Exemple pédagogique : si le marquage est exact, λ attendu ≈{" "}
+                      {formatDeg(
+                        computeAngleLambda({
+                          eye,
+                          displacementNasalMm: DEMO_DISPLACEMENT_MM,
+                          displacementVerticalMm: 0,
+                          radialMm: DEMO_DISPLACEMENT_MM,
+                          cornealRadiusMm: params.cornealRadiusMm,
+                          hvidMm: params.hvidMm,
+                        }).degrees,
+                        true,
+                      )}{" "}
+                      nasal (δ = {DEMO_DISPLACEMENT_MM.toLocaleString("fr-FR")} mm).
+                    </p>
+                  )}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <ResultsCard
+            patientRef={patientRef}
+            od={odMeasure}
+            os={osMeasure}
+          />
+          <ParamsCard params={params} onChange={setParams} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EyeToolbar({
+  eye,
+  draft,
+  onFiles,
+  onDemo,
+  onResetPoints,
+  onResetEye,
+}: {
+  eye: EyeSide;
+  draft: EyeDraft;
+  onFiles: (files: FileList | null) => void;
+  onDemo: () => void;
+  onResetPoints: () => void;
+  onResetEye: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <label className="inline-flex">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          className="sr-only"
+          onChange={(event) => {
+            onFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
+        <span
+          className={cn(
+            "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/85",
+          )}
+        >
+          <ImagePlus className="size-4" />
+          Importer {eye}
+        </span>
+      </label>
+      <Button variant="outline" onClick={onDemo}>
+        <Sparkles />
+        Exemple pédagogique
+      </Button>
+      <Button variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
+        <Eraser />
+        Effacer les points
+      </Button>
+      <Button variant="ghost" onClick={onResetEye} disabled={!draft.imageUrl}>
+        <RotateCcw />
+        Retirer la photo
+      </Button>
+      {draft.fileName && (
+        <span className="truncate text-xs text-muted-foreground sm:ml-auto">
+          {draft.fileName}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function LandmarkPicker({
+  landmarks,
+  active,
+  onChange,
+}: {
+  landmarks: EyeLandmarks;
+  active: LandmarkId;
+  onChange: (id: LandmarkId) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {LANDMARK_ORDER.map((id, index) => {
+        const meta = LANDMARK_META[id];
+        const placed = Boolean(landmarks[id]);
+        const isActive = active === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={cn(
+              "rounded-lg border px-2.5 py-2 text-left transition-colors",
+              isActive
+                ? "border-primary bg-primary/8 ring-2 ring-primary/20"
+                : "border-border hover:bg-muted/60",
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-xs font-medium">
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ background: meta.color }}
+                />
+                {index + 1}. {meta.short}
+              </span>
+              {placed && <Check className="size-3.5 text-teal-700" />}
+            </div>
+            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+              {meta.label}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResultsCard({
+  patientRef,
+  od,
+  os,
+}: {
+  patientRef: string;
+  od: EyeMeasurement;
+  os: EyeMeasurement;
+}) {
+  return (
+    <Card className="lg:sticky lg:top-24">
+      <CardHeader>
+        <CardTitle>Angle lambda</CardTitle>
+        <CardDescription>
+          {patientRef ? `Patient ${patientRef} · ` : null}
+          Un œil puis l’autre, en monoculaire.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <EyeResult eye="OD" measurement={od} />
+        <Separator />
+        <EyeResult eye="OS" measurement={os} />
+        {od.status === "ok" && os.status === "ok" && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-xs text-muted-foreground">Différence interoculaire</p>
+              <p className="font-heading text-xl tabular-nums">
+                {formatDeg(Math.abs(od.angleLambdaDeg - os.angleLambdaDeg))}
+              </p>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function EyeResult({
+  eye,
+  measurement,
+}: {
+  eye: EyeSide;
+  measurement: EyeMeasurement;
+}) {
+  if (measurement.status === "empty") {
+    return (
+      <div>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {eyeLabel(eye)}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">En attente d’une photographie.</p>
+      </div>
+    );
+  }
+
+  if (measurement.status === "incomplete") {
+    return (
+      <div>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {eyeLabel(eye)}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Points manquants :{" "}
+          {measurement.missing.map((id) => LANDMARK_META[id].label).join(", ")}.
+        </p>
+      </div>
+    );
+  }
+
+  if (measurement.status === "invalid") {
+    return (
+      <div>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {eyeLabel(eye)}
+        </p>
+        <p className="mt-1 text-sm text-destructive">{measurement.reason}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          {eyeLabel(eye)}
+        </p>
+        <Badge
+          variant={measurement.laterality === "temporal" ? "destructive" : "secondary"}
+        >
+          {lateralityLabel(measurement.laterality)}
+        </Badge>
+      </div>
+      <p className="font-heading text-4xl tracking-tight tabular-nums">
+        {formatDeg(measurement.angleLambdaDeg, true)}
+      </p>
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div>
+          <dt>δ nasal</dt>
+          <dd className="text-foreground tabular-nums">
+            {formatMm(measurement.displacementNasalMm)}
+          </dd>
+        </div>
+        <div>
+          <dt>Équivalent prismatique</dt>
+          <dd className="text-foreground tabular-nums">
+            {measurement.prismDiopters.toLocaleString("fr-FR", {
+              maximumFractionDigits: 1,
+              minimumFractionDigits: 1,
+            })}{" "}
+            Δ
+          </dd>
+        </div>
+      </dl>
+      {measurement.warnings.map((warning) => (
+        <p key={warning} className="text-xs text-amber-800">
+          {warning}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function ParamsCard({
+  params,
+  onChange,
+}: {
+  params: FormulaParams;
+  onChange: (params: FormulaParams) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Échelle</CardTitle>
+        <CardDescription>
+          Le diamètre irien calibré la photo. Le rayon cornéen entre dans la
+          formule provisoire.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="hvid">HVID — diamètre irien horizontal (mm)</Label>
+          <Input
+            id="hvid"
+            type="number"
+            inputMode="decimal"
+            min={10}
+            max={14}
+            step={0.1}
+            value={params.hvidMm}
+            onChange={(event) =>
+              onChange({
+                ...params,
+                hvidMm: Number(event.target.value),
+              })
+            }
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="radius">R — rayon de courbure cornéen (mm)</Label>
+          <Input
+            id="radius"
+            type="number"
+            inputMode="decimal"
+            min={6}
+            max={9.5}
+            step={0.05}
+            value={params.cornealRadiusMm}
+            onChange={(event) =>
+              onChange({
+                ...params,
+                cornealRadiusMm: Number(event.target.value),
+              })
+            }
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Valeurs par défaut : HVID 11,7 mm, R 7,80 mm. Adaptez-les si une
+          kératométrie ou une biométrie est disponible.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildReport(
+  patientRef: string,
+  params: FormulaParams,
+  od: EyeMeasurement,
+  os: EyeMeasurement,
+): string {
+  const date = new Date().toLocaleString("fr-FR");
+  const lines = [
+    "LambdaCOR — angle lambda photographique",
+    date,
+    patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
+    `Échelle : HVID ${params.hvidMm.toLocaleString("fr-FR")} mm · R ${params.cornealRadiusMm.toLocaleString("fr-FR")} mm`,
+    `Formule : ${FORMULA.expression} (${FORMULA.version})`,
+    "",
+    formatEyeLine("OD", od),
+    formatEyeLine("OS", os),
+  ];
+  return lines.join("\n");
+}
+
+function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
+  if (measurement.status !== "ok") {
+    return `${eye} : mesure incomplète`;
+  }
+  return `${eye} : λ = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · δ = ${formatMm(measurement.displacementNasalMm)}`;
+}
+
+async function fileToObjectUrl(file: File): Promise<string> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        bitmap.close();
+        return URL.createObjectURL(file);
+      }
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.92),
+      );
+      if (!blob) return URL.createObjectURL(file);
+      return URL.createObjectURL(blob);
+    } catch {
+      return URL.createObjectURL(file);
+    }
+  }
+  return URL.createObjectURL(file);
+}
