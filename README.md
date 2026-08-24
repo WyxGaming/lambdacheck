@@ -39,10 +39,12 @@ correctopie = ((cornee_NLTL/2) − (pupil_NPTP/2 + iris_nasal)) × (WtW / cornee
 
 | Grandeur photo | Curseurs |
 | --- | --- |
-| `cornee_NLTL` | limbe nasal → limbe temporal |
+| `cornee_NLTL` (WtW) | limbe nasal → limbe temporal |
 | `pupil_NPTP` | bord pupillaire nasal → bord pupillaire temporal |
 | `NPPI` | bord pupillaire nasal → reflet de Purkinje |
 | `iris_nasal` | limbe nasal → bord pupillaire nasal |
+
+Le WtW millimétrique d’échelle est 11,71 mm (référence KappaView) : les curseurs limbiques en donnent la mesure sur la photo. La DAC est saisie par le clinicien ; à défaut, 3,4 mm.
 
 Implémentation : `src/lib/lambda.ts` (`computeAngleLambda`).
 
