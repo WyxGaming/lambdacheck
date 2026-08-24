@@ -118,25 +118,25 @@ export const LANDMARK_META: Record<
   pupilNasal: {
     label: "Bord pupillaire nasal",
     short: "PN",
-    hint: "Marge pupillaire côté nez",
+    hint: "Marge pupillaire côté nez — pose libre",
     color: "#d97706",
   },
   pupilTemporal: {
     label: "Bord pupillaire temporal",
     short: "PT",
-    hint: "Marge pupillaire côté tempe",
+    hint: "Marge pupillaire côté tempe — pose libre",
     color: "#c2410c",
   },
   pupilSuperior: {
     label: "Bord pupillaire supérieur",
     short: "PS",
-    hint: "Marge pupillaire en haut",
+    hint: "Marge pupillaire en haut — pose libre, la pupille n’est pas forcément ronde",
     color: "#db2777",
   },
   pupilInferior: {
     label: "Bord pupillaire inférieur",
     short: "PI",
-    hint: "Marge pupillaire en bas",
+    hint: "Marge pupillaire en bas — pose libre, indépendant de PS",
     color: "#9f1239",
   },
   cornealReflex: {
@@ -395,21 +395,6 @@ export function ghostHandles(
       ghosts.limbusInferior = { x: cornea.cx, y: cornea.cy + cornea.ry };
     }
   }
-  if (landmarks.pupilNasal && landmarks.pupilTemporal) {
-    const cx = (landmarks.pupilNasal.x + landmarks.pupilTemporal.x) / 2;
-    const cy = (landmarks.pupilNasal.y + landmarks.pupilTemporal.y) / 2;
-    const rx = distance(landmarks.pupilNasal, landmarks.pupilTemporal) / 2;
-    const ry =
-      landmarks.pupilSuperior && landmarks.pupilInferior
-        ? Math.abs(landmarks.pupilInferior.y - landmarks.pupilSuperior.y) / 2
-        : rx;
-    if (!landmarks.pupilSuperior) {
-      ghosts.pupilSuperior = { x: cx, y: cy - ry };
-    }
-    if (!landmarks.pupilInferior) {
-      ghosts.pupilInferior = { x: cx, y: cy + ry };
-    }
-  }
   return ghosts;
 }
 
@@ -453,16 +438,6 @@ export function applyLandmarkConstraints(
       corneaCenter(landmarks),
     );
   }
-  if (id === "pupilSuperior" || id === "pupilInferior") {
-    return alignVerticalPair(
-      landmarks,
-      id,
-      "pupilSuperior",
-      "pupilInferior",
-      point,
-      pupilHorizontalCenter(landmarks),
-    );
-  }
   return { ...landmarks, [id]: point };
 }
 
@@ -495,11 +470,6 @@ function alignPair(
 function corneaCenter(landmarks: EyeLandmarks): Point | null {
   if (!landmarks.limbusNasal || !landmarks.limbusTemporal) return null;
   return midpoint(landmarks.limbusNasal, landmarks.limbusTemporal);
-}
-
-function pupilHorizontalCenter(landmarks: EyeLandmarks): Point | null {
-  if (!landmarks.pupilNasal || !landmarks.pupilTemporal) return null;
-  return midpoint(landmarks.pupilNasal, landmarks.pupilTemporal);
 }
 
 function alignVerticalPair(

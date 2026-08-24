@@ -183,9 +183,10 @@ export function ExamWorkspace() {
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
                 Cliquez pour poser le curseur actif. Après LN et LT, des
-                poignées apparaissent sur l’ellipse : glissez-les, le contour
-                ou le centre pour coller le limbe. Les deux λ se calculent
-                ensuite.
+                poignées apparaissent sur l’ellipse du limbe : glissez-les,
+                le contour ou le centre. Les bords pupillaires (PN, PT, PS,
+                PI) se posent ensuite un par un : la pupille n’est pas
+                forcément ronde.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -548,7 +549,7 @@ function EyeResult({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ajustez l’ellipse au limbe, puis PS et PI.
+            Ajustez l’ellipse au limbe, puis posez PS et PI séparément.
           </p>
         )}
       </div>

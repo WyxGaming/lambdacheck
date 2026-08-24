@@ -11,10 +11,12 @@ import {
   computeAngleLambda,
   distanceToEllipse,
   extractKappaViewPixels,
+  ghostHandles,
   limbusEllipse,
   limbusEllipseHandles,
   measureEye,
   nearestEllipseHandle,
+  applyLandmarkConstraints,
   resolveScale,
   translateCornea,
   withAlignedLimbus,
@@ -246,4 +248,40 @@ test("déplacer l’ellipse du limbe translate LN, LT, LS et LI", () => {
   assert.deepEqual(moved.limbusSuperior, { x: 210, y: 75 });
   assert.deepEqual(moved.limbusInferior, { x: 210, y: 315 });
   assert.deepEqual(moved.pupilNasal, { x: 250, y: 200 });
+});
+
+test("les bords pupillaires se posent librement, sans ellipse ni miroir", () => {
+  const withHorizontal = {
+    pupilNasal: { x: 250, y: 205 },
+    pupilTemporal: { x: 150, y: 190 },
+  };
+  assert.equal(ghostHandles(withHorizontal).pupilSuperior, undefined);
+  assert.equal(ghostHandles(withHorizontal).pupilInferior, undefined);
+
+  const withSuperior = applyLandmarkConstraints(
+    withHorizontal,
+    "pupilSuperior",
+    { x: 210, y: 140 },
+    "place",
+  );
+  assert.deepEqual(withSuperior.pupilSuperior, { x: 210, y: 140 });
+  assert.equal(withSuperior.pupilInferior, undefined);
+
+  const both = applyLandmarkConstraints(
+    withSuperior,
+    "pupilInferior",
+    { x: 185, y: 270 },
+    "place",
+  );
+  assert.deepEqual(both.pupilInferior, { x: 185, y: 270 });
+  assert.deepEqual(both.pupilSuperior, { x: 210, y: 140 });
+
+  const dragged = applyLandmarkConstraints(
+    both,
+    "pupilSuperior",
+    { x: 230, y: 120 },
+    "drag",
+  );
+  assert.deepEqual(dragged.pupilSuperior, { x: 230, y: 120 });
+  assert.deepEqual(dragged.pupilInferior, { x: 185, y: 270 });
 });
