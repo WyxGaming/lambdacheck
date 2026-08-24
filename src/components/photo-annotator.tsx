@@ -143,7 +143,6 @@ export function PhotoAnnotator({
       setImageVersion((version) => version + 1);
     };
     img.src = imageUrl;
-    void img.decode().then(markReady).catch(() => undefined);
     return () => {
       cancelled = true;
     };

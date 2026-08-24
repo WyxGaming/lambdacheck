@@ -49,10 +49,9 @@ export function createSyntheticEye(
 ): SyntheticEye {
   const geo = demoGeometry(eye);
   const measured = measureEye(eye, geo.landmarks, params);
-  const svg = renderDemoSvg(eye, geo);
 
   return {
-    imageUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`,
+    imageUrl: `/exemple-${eye.toLowerCase()}.svg`,
     landmarks: geo.landmarks,
     expectedDegrees: measured.status === "ok" ? measured.angleLambdaDeg : 0,
   };
@@ -65,39 +64,43 @@ function renderDemoSvg(
   const { size, cx, cy, irisR, pupilR, reflexX, reflexY } = geo;
   const leftLabel = eye === "OD" ? "TEMPORAL" : "NASAL";
   const rightLabel = eye === "OD" ? "NASAL" : "TEMPORAL";
+  const id = eye.toLowerCase();
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <defs>
-    <radialGradient id="sclera" cx="45%" cy="40%" r="70%">
+    <radialGradient id="sclera-${id}" cx="45%" cy="40%" r="70%">
       <stop offset="0%" stop-color="#f7f1e8"/>
       <stop offset="70%" stop-color="#ead9c8"/>
       <stop offset="100%" stop-color="#c9b09a"/>
     </radialGradient>
-    <radialGradient id="iris" cx="44%" cy="44%" r="58%">
+    <radialGradient id="iris-${id}" cx="44%" cy="44%" r="58%">
       <stop offset="0%" stop-color="#1f4d46"/>
       <stop offset="35%" stop-color="#2f6f62"/>
       <stop offset="72%" stop-color="#3d6a4f"/>
       <stop offset="100%" stop-color="#1a332c"/>
     </radialGradient>
-    <radialGradient id="pupil" cx="42%" cy="42%" r="70%">
+    <radialGradient id="pupil-${id}" cx="42%" cy="42%" r="70%">
       <stop offset="0%" stop-color="#1c1917"/>
       <stop offset="100%" stop-color="#050505"/>
     </radialGradient>
-    <radialGradient id="glint" cx="50%" cy="50%" r="50%">
+    <radialGradient id="glint-${id}" cx="50%" cy="50%" r="50%">
       <stop offset="0%" stop-color="#ffffff"/>
       <stop offset="40%" stop-color="#ffffff" stop-opacity="0.7"/>
       <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="${size}" height="${size}" fill="url(#sclera)"/>
-  <circle cx="${cx}" cy="${cy}" r="${irisR}" fill="url(#iris)" stroke="#14241f" stroke-width="7"/>
-  <circle cx="${cx}" cy="${cy}" r="${pupilR}" fill="url(#pupil)"/>
-  <circle cx="${reflexX}" cy="${reflexY}" r="22" fill="url(#glint)"/>
+  <rect width="${size}" height="${size}" fill="url(#sclera-${id})"/>
+  <circle cx="${cx}" cy="${cy}" r="${irisR}" fill="url(#iris-${id})" stroke="#14241f" stroke-width="7"/>
+  <circle cx="${cx}" cy="${cy}" r="${pupilR}" fill="url(#pupil-${id})"/>
+  <circle cx="${reflexX}" cy="${reflexY}" r="22" fill="url(#glint-${id})"/>
   <circle cx="${reflexX}" cy="${reflexY}" r="7" fill="#ffffff"/>
-  <text x="${cx - irisR}" y="${cy - irisR - 18}" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="600">${leftLabel}</text>
-  <text x="${cx + irisR}" y="${cy - irisR - 18}" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="600">${rightLabel}</text>
-  <rect x="24" y="${size - 64}" width="430" height="36" rx="6" fill="rgba(15,23,22,0.72)"/>
-  <text x="36" y="${size - 40}" fill="#f8fafc" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="600">Exemple pédagogique · ${eye} · regard monoculaire</text>
+  <text x="${cx - irisR}" y="${cy - irisR - 18}" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="sans-serif" font-weight="600">${leftLabel}</text>
+  <text x="${cx + irisR}" y="${cy - irisR - 18}" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="sans-serif" font-weight="600">${rightLabel}</text>
+  <rect x="24" y="${size - 64}" width="430" height="36" rx="6" fill="#0f1716" fill-opacity="0.72"/>
+  <text x="36" y="${size - 40}" fill="#f8fafc" font-size="16" font-family="sans-serif" font-weight="600">Exemple pédagogique · ${eye} · regard monoculaire</text>
 </svg>`;
+}
+
+export function demoSvg(eye: EyeSide): string {
+  return renderDemoSvg(eye, demoGeometry(eye));
 }

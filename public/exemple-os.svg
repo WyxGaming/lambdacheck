@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs>
+    <radialGradient id="sclera-os" cx="45%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#f7f1e8"/>
+      <stop offset="70%" stop-color="#ead9c8"/>
+      <stop offset="100%" stop-color="#c9b09a"/>
+    </radialGradient>
+    <radialGradient id="iris-os" cx="44%" cy="44%" r="58%">
+      <stop offset="0%" stop-color="#1f4d46"/>
+      <stop offset="35%" stop-color="#2f6f62"/>
+      <stop offset="72%" stop-color="#3d6a4f"/>
+      <stop offset="100%" stop-color="#1a332c"/>
+    </radialGradient>
+    <radialGradient id="pupil-os" cx="42%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#1c1917"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </radialGradient>
+    <radialGradient id="glint-os" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#sclera-os)"/>
+  <circle cx="450" cy="450" r="215" fill="url(#iris-os)" stroke="#14241f" stroke-width="7"/>
+  <circle cx="450" cy="450" r="77.39999999999999" fill="url(#pupil-os)"/>
+  <circle cx="433.47566182749785" cy="448" r="22" fill="url(#glint-os)"/>
+  <circle cx="433.47566182749785" cy="448" r="7" fill="#ffffff"/>
+  <text x="235" y="217" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="sans-serif" font-weight="600">NASAL</text>
+  <text x="665" y="217" text-anchor="middle" fill="#ffffff" fill-opacity="0.45" font-size="18" font-family="sans-serif" font-weight="600">TEMPORAL</text>
+  <rect x="24" y="836" width="430" height="36" rx="6" fill="#0f1716" fill-opacity="0.72"/>
+  <text x="36" y="860" fill="#f8fafc" font-size="16" font-family="sans-serif" font-weight="600">Exemple pédagogique · OS · regard monoculaire</text>
+</svg>
