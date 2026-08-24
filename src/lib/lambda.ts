@@ -70,13 +70,13 @@ export const LANDMARK_META: Record<
   limbusNasal: {
     label: "Limbe nasal",
     short: "LN",
-    hint: "Bord interne de l’iris, côté nez",
+    hint: "Bord interne de l’iris, côté nez — même hauteur que LT",
     color: "#0369a1",
   },
   limbusTemporal: {
     label: "Limbe temporal",
     short: "LT",
-    hint: "Bord externe de l’iris, côté tempe",
+    hint: "Bord externe de l’iris, côté tempe — même hauteur que LN",
     color: "#0f766e",
   },
   pupilNasal: {
@@ -193,6 +193,46 @@ export function distance(a: Point, b: Point): number {
 
 export function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+export function isLimbusLandmark(
+  id: LandmarkId,
+): id is "limbusNasal" | "limbusTemporal" {
+  return id === "limbusNasal" || id === "limbusTemporal";
+}
+
+export function otherLimbus(
+  id: "limbusNasal" | "limbusTemporal",
+): "limbusNasal" | "limbusTemporal" {
+  return id === "limbusNasal" ? "limbusTemporal" : "limbusNasal";
+}
+
+/**
+ * Les deux limbes cornéens restent à la même hauteur (axe nasal–temporal).
+ * Premier limbe : pose libre. Second : Y du premier. Déplacement : les deux Y suivent.
+ */
+export function withAlignedLimbus(
+  landmarks: EyeLandmarks,
+  id: LandmarkId,
+  point: Point,
+  mode: "place" | "drag",
+): EyeLandmarks {
+  if (!isLimbusLandmark(id)) {
+    return { ...landmarks, [id]: point };
+  }
+  const otherId = otherLimbus(id);
+  const other = landmarks[otherId];
+  if (!other) {
+    return { ...landmarks, [id]: point };
+  }
+  if (mode === "place") {
+    return { ...landmarks, [id]: { x: point.x, y: other.y } };
+  }
+  return {
+    ...landmarks,
+    [id]: { x: point.x, y: point.y },
+    [otherId]: { x: other.x, y: point.y },
+  };
 }
 
 /** Centre pupillaire estimé : milieu des bords nasal et temporal. */

@@ -12,6 +12,7 @@ import {
   extractKappaViewPixels,
   measureEye,
   resolveScale,
+  withAlignedLimbus,
 } from "./lambda.ts";
 
 test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python", () => {
@@ -132,4 +133,32 @@ test("WtW et DAC saisis par le clinicien sont utilisés tels quels", () => {
   assert.equal(scale.dacMm, 3.1);
   assert.equal(scale.wtwFromReference, false);
   assert.equal(scale.dacFromReference, false);
+});
+
+test("le second limbe se cale à la hauteur du premier", () => {
+  const first = withAlignedLimbus({}, "limbusNasal", { x: 120, y: 200 }, "place");
+  assert.deepEqual(first.limbusNasal, { x: 120, y: 200 });
+  const both = withAlignedLimbus(
+    first,
+    "limbusTemporal",
+    { x: 40, y: 310 },
+    "place",
+  );
+  assert.equal(both.limbusNasal?.y, 200);
+  assert.deepEqual(both.limbusTemporal, { x: 40, y: 200 });
+});
+
+test("déplacer un limbe aligne l’autre à la même hauteur", () => {
+  const placed = {
+    limbusNasal: { x: 120, y: 200 },
+    limbusTemporal: { x: 40, y: 200 },
+  };
+  const dragged = withAlignedLimbus(
+    placed,
+    "limbusNasal",
+    { x: 130, y: 250 },
+    "drag",
+  );
+  assert.deepEqual(dragged.limbusNasal, { x: 130, y: 250 });
+  assert.deepEqual(dragged.limbusTemporal, { x: 40, y: 250 });
 });

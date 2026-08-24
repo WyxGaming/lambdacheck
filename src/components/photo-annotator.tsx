@@ -15,6 +15,7 @@ import {
   distance,
   nasalDirectionX,
   nextLandmark,
+  withAlignedLimbus,
 } from "@/lib/lambda";
 import { cn } from "@/lib/utils";
 
@@ -183,7 +184,7 @@ export function PhotoAnnotator({
       img.height * layout.scale,
     );
 
-    drawGuides(ctx, layout, landmarksRef.current, eye);
+    drawGuides(ctx, layout, landmarksRef.current, eye, img.width);
     drawLandmarks(ctx, layout, landmarksRef.current, activeRef.current);
 
     const pointer = pointerRef.current;
@@ -322,10 +323,12 @@ export function PhotoAnnotator({
       return;
     }
 
-    const next = {
-      ...landmarksRef.current,
-      [activeRef.current]: imagePoint,
-    };
+    const next = withAlignedLimbus(
+      landmarksRef.current,
+      activeRef.current,
+      imagePoint,
+      "place",
+    );
     onLandmarksChange(next);
     onActiveLandmarkChange(nextLandmark(next));
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -381,10 +384,9 @@ export function PhotoAnnotator({
     if (!dragId) return;
     const imagePoint = eventToImage(event);
     if (!imagePoint) return;
-    onLandmarksChange({
-      ...landmarksRef.current,
-      [dragId]: imagePoint,
-    });
+    onLandmarksChange(
+      withAlignedLimbus(landmarksRef.current, dragId, imagePoint, "drag"),
+    );
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -579,6 +581,7 @@ function drawGuides(
   layout: Layout,
   landmarks: EyeLandmarks,
   eye: EyeSide,
+  imageWidth: number,
 ) {
   const temporal = landmarks.limbusTemporal;
   const nasal = landmarks.limbusNasal;
@@ -586,6 +589,20 @@ function drawGuides(
   const pupilTemporal = landmarks.pupilTemporal;
   const pupil = derivedPupilCenter(landmarks);
   const reflex = landmarks.cornealReflex;
+  const limbusY = nasal?.y ?? temporal?.y;
+
+  if (limbusY != null) {
+    const left = imageToCss({ x: 0, y: limbusY }, layout);
+    const right = imageToCss({ x: imageWidth, y: limbusY }, layout);
+    ctx.beginPath();
+    ctx.moveTo(left.x, left.y);
+    ctx.lineTo(right.x, right.y);
+    ctx.strokeStyle = "rgba(125, 211, 252, 0.55)";
+    ctx.setLineDash([4, 5]);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
   if (temporal && nasal) {
     const a = imageToCss(temporal, layout);
