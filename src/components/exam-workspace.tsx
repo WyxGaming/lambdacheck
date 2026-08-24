@@ -162,8 +162,9 @@ export function ExamWorkspace() {
             Nouvelle mesure
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Importez ou déposez une photo par œil, posez les cinq curseurs.
-            Le résultat s’affiche sans réglage préalable.
+            Importez ou déposez une photo par œil. Posez d’abord l’axe
+            horizontal, puis étirez l’ellipse du limbe (haut/bas) pour λ
+            vertical.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -181,8 +182,9 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
-                Cliquez pour poser le curseur actif. Les deux limbes se calent
-                à la même hauteur. Zoomez si deux points se confondent.
+                Cliquez pour poser le curseur actif. Après LN et LT, glissez
+                le haut ou le bas de l’ellipse pour l’ajuster au limbe. Les
+                deux λ (horizontal et vertical) se calculent ensuite.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -298,10 +300,13 @@ function DemoHint({
   if (expected.status !== "ok") return null;
   return (
     <p className="text-xs text-muted-foreground">
-      Exemple pédagogique : si le marquage est exact, λ attendu ≈{" "}
-      {formatDeg(expected.angleLambdaDeg, true)} ({lateralityLabel(expected.laterality)}
-      ), Ø pupillaire {formatMm(expected.pupilDiameterMm)}, correctopie{" "}
-      {formatMm(expected.correctopieMm)}.
+      Exemple pédagogique : si le marquage est exact, λh ≈{" "}
+      {formatDeg(expected.angleLambdaDeg, true)} (
+      {lateralityLabel(expected.laterality)})
+      {expected.vertical
+        ? ` · λv ≈ ${formatDeg(expected.vertical.angleLambdaDeg, true)} (${lateralityLabel(expected.vertical.laterality)})`
+        : ""}
+      .
     </p>
   );
 }
@@ -376,40 +381,61 @@ function LandmarkPicker({
   active: LandmarkId;
   onChange: (id: LandmarkId) => void;
 }) {
+  const groups: { title: string; ids: LandmarkId[] }[] = [
+    {
+      title: "Horizontal",
+      ids: ["limbusNasal", "limbusTemporal", "pupilNasal", "pupilTemporal"],
+    },
+    {
+      title: "Vertical",
+      ids: ["limbusSuperior", "limbusInferior", "pupilSuperior", "pupilInferior"],
+    },
+    { title: "Reflet", ids: ["cornealReflex"] },
+  ];
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-      {LANDMARK_ORDER.map((id, index) => {
-        const meta = LANDMARK_META[id];
-        const placed = Boolean(landmarks[id]);
-        const isActive = active === id;
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={cn(
-              "rounded-lg border px-2.5 py-2 text-left transition-colors",
-              isActive
-                ? "border-primary bg-primary/8 ring-2 ring-primary/20"
-                : "border-border hover:bg-muted/60",
-            )}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-xs font-medium">
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ background: meta.color }}
-                />
-                {index + 1}. {meta.short}
-              </span>
-              {placed && <Check className="size-3.5 text-teal-700" />}
-            </div>
-            <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-              {meta.label}
-            </p>
-          </button>
-        );
-      })}
+    <div className="space-y-3">
+      {groups.map((group) => (
+        <div key={group.title}>
+          <p className="mb-1.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            {group.title}
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {group.ids.map((id) => {
+              const meta = LANDMARK_META[id];
+              const index = LANDMARK_ORDER.indexOf(id);
+              const placed = Boolean(landmarks[id]);
+              const isActive = active === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onChange(id)}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-2 text-left transition-colors",
+                    isActive
+                      ? "border-primary bg-primary/8 ring-2 ring-primary/20"
+                      : "border-border hover:bg-muted/60",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1.5 text-xs font-medium">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ background: meta.color }}
+                      />
+                      {index + 1}. {meta.short}
+                    </span>
+                    {placed && <Check className="size-3.5 text-teal-700" />}
+                  </div>
+                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                    {meta.label}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -429,7 +455,7 @@ function ResultsCard({
         <CardTitle>Angle lambda</CardTitle>
         <CardDescription>
           {patientRef ? `Patient ${patientRef} · ` : null}
-          Un œil puis l’autre, en monoculaire.
+          Un œil puis l’autre · λ horizontal et vertical.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -485,20 +511,46 @@ function EyeResult({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {eyeLabel(eye)}
-        </p>
-        <Badge
-          variant={measurement.laterality === "temporal" ? "destructive" : "secondary"}
-        >
-          {lateralityLabel(measurement.laterality)}
-        </Badge>
-      </div>
-      <p className="font-heading text-4xl tracking-tight tabular-nums">
-        {formatDeg(measurement.angleLambdaDeg, true)}
+    <div className="space-y-3">
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        {eyeLabel(eye)}
       </p>
+      <div>
+        <p className="text-[11px] text-muted-foreground">λ horizontal</p>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-heading text-3xl tracking-tight tabular-nums">
+            {formatDeg(measurement.angleLambdaDeg, true)}
+          </p>
+          <Badge
+            variant={measurement.laterality === "temporal" ? "destructive" : "secondary"}
+          >
+            {lateralityLabel(measurement.laterality)}
+          </Badge>
+        </div>
+      </div>
+      <div>
+        <p className="text-[11px] text-muted-foreground">λ vertical</p>
+        {measurement.vertical ? (
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="font-heading text-3xl tracking-tight tabular-nums">
+              {formatDeg(measurement.vertical.angleLambdaDeg, true)}
+            </p>
+            <Badge
+              variant={
+                measurement.vertical.laterality === "inferior"
+                  ? "destructive"
+                  : "secondary"
+              }
+            >
+              {lateralityLabel(measurement.vertical.laterality)}
+            </Badge>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Ajustez le haut et le bas de l’ellipse, puis PS et PI.
+          </p>
+        )}
+      </div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <div>
           <dt>DAC</dt>
@@ -515,18 +567,41 @@ function EyeResult({
           </dd>
         </div>
         <div>
-          <dt>Diamètre pupillaire</dt>
+          <dt>Ø pupille H</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.pupilDiameterMm)}
           </dd>
         </div>
         <div>
-          <dt>Correctopie</dt>
+          <dt>Ø pupille V</dt>
+          <dd className="text-foreground tabular-nums">
+            {measurement.vertical
+              ? formatMm(measurement.vertical.pupilDiameterMm)
+              : "—"}
+          </dd>
+        </div>
+        <div>
+          <dt>Correctopie H</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.correctopieMm)}{" "}
             <span className="text-muted-foreground">
               ({lateralityLabel(measurement.correctopieLaterality)})
             </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Correctopie V</dt>
+          <dd className="text-foreground tabular-nums">
+            {measurement.vertical ? (
+              <>
+                {formatMm(measurement.vertical.correctopieMm)}{" "}
+                <span className="text-muted-foreground">
+                  ({lateralityLabel(measurement.vertical.correctopieLaterality)})
+                </span>
+              </>
+            ) : (
+              "—"
+            )}
           </dd>
         </div>
       </dl>
@@ -635,7 +710,11 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  return `${eye} : λ = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · Ø pupille = ${formatMm(measurement.pupilDiameterMm)} · correctopie = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+  if (!measurement.vertical) {
+    return `${horizontal} · λv : incomplet`;
+  }
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} (${lateralityLabel(measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {

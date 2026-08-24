@@ -31,8 +31,12 @@ export function demoGeometry(eye: EyeSide) {
   const landmarks: EyeLandmarks = {
     limbusTemporal: { x: cx - nasalX * irisR, y: cy },
     limbusNasal: { x: cx + nasalX * irisR, y: cy },
+    limbusSuperior: { x: cx, y: cy - irisR },
+    limbusInferior: { x: cx, y: cy + irisR },
     pupilTemporal: { x: cx - nasalX * pupilR, y: cy },
     pupilNasal: { x: cx + nasalX * pupilR, y: cy },
+    pupilSuperior: { x: cx, y: cy - pupilR },
+    pupilInferior: { x: cx, y: cy + pupilR },
     cornealReflex: { x: reflexX, y: reflexY },
   };
 

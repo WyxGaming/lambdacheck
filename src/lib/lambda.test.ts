@@ -162,3 +162,44 @@ test("déplacer un limbe aligne l’autre à la même hauteur", () => {
   assert.deepEqual(dragged.limbusNasal, { x: 130, y: 250 });
   assert.deepEqual(dragged.limbusTemporal, { x: 40, y: 250 });
 });
+
+test("λ vertical : reflet supérieur au centre pupillaire → λv positif", () => {
+  const measurement = measureEye(
+    "OD",
+    {
+      limbusTemporal: { x: 100, y: 200 },
+      limbusNasal: { x: 334, y: 200 },
+      limbusSuperior: { x: 217, y: 83 },
+      limbusInferior: { x: 217, y: 317 },
+      pupilTemporal: { x: 177, y: 200 },
+      pupilNasal: { x: 257, y: 200 },
+      pupilSuperior: { x: 217, y: 160 },
+      pupilInferior: { x: 217, y: 240 },
+      cornealReflex: { x: 217, y: 185 },
+    },
+    DEFAULT_PARAMS,
+  );
+  assert.equal(measurement.status, "ok");
+  if (measurement.status !== "ok") return;
+  assert.ok(measurement.vertical);
+  assert.equal(measurement.vertical!.laterality, "superior");
+  assert.ok(measurement.vertical!.angleLambdaDeg > 0);
+});
+
+test("mesure horizontale possible avant d’avoir fini le vertical", () => {
+  const measurement = measureEye(
+    "OD",
+    {
+      limbusTemporal: { x: 100, y: 200 },
+      limbusNasal: { x: 334, y: 200 },
+      pupilTemporal: { x: 177, y: 200 },
+      pupilNasal: { x: 257, y: 200 },
+      cornealReflex: { x: 226, y: 200 },
+    },
+    DEFAULT_PARAMS,
+  );
+  assert.equal(measurement.status, "ok");
+  if (measurement.status !== "ok") return;
+  assert.equal(measurement.laterality, "nasal");
+  assert.equal(measurement.vertical, null);
+});

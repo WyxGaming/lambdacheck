@@ -3,8 +3,12 @@ export type EyeSide = "OD" | "OS";
 export type LandmarkId =
   | "limbusNasal"
   | "limbusTemporal"
+  | "limbusSuperior"
+  | "limbusInferior"
   | "pupilNasal"
   | "pupilTemporal"
+  | "pupilSuperior"
+  | "pupilInferior"
   | "cornealReflex";
 
 export type Point = { x: number; y: number };
@@ -56,8 +60,28 @@ export const LAMBDA_OFFSET = -0.0329;
 export const LANDMARK_ORDER: LandmarkId[] = [
   "limbusNasal",
   "limbusTemporal",
+  "limbusSuperior",
+  "limbusInferior",
   "pupilNasal",
   "pupilTemporal",
+  "pupilSuperior",
+  "pupilInferior",
+  "cornealReflex",
+];
+
+export const HORIZONTAL_REQUIRED: LandmarkId[] = [
+  "limbusNasal",
+  "limbusTemporal",
+  "pupilNasal",
+  "pupilTemporal",
+  "cornealReflex",
+];
+
+export const VERTICAL_REQUIRED: LandmarkId[] = [
+  "limbusSuperior",
+  "limbusInferior",
+  "pupilSuperior",
+  "pupilInferior",
   "cornealReflex",
 ];
 
@@ -79,6 +103,18 @@ export const LANDMARK_META: Record<
     hint: "Bord externe de l’iris, côté tempe — même hauteur que LN",
     color: "#0f766e",
   },
+  limbusSuperior: {
+    label: "Limbe supérieur",
+    short: "LS",
+    hint: "Bord supérieur de l’iris — ajuste l’ellipse du limbe",
+    color: "#7c3aed",
+  },
+  limbusInferior: {
+    label: "Limbe inférieur",
+    short: "LI",
+    hint: "Bord inférieur de l’iris — ajuste l’ellipse du limbe",
+    color: "#6d28d9",
+  },
   pupilNasal: {
     label: "Bord pupillaire nasal",
     short: "PN",
@@ -90,6 +126,18 @@ export const LANDMARK_META: Record<
     short: "PT",
     hint: "Marge pupillaire côté tempe",
     color: "#c2410c",
+  },
+  pupilSuperior: {
+    label: "Bord pupillaire supérieur",
+    short: "PS",
+    hint: "Marge pupillaire en haut",
+    color: "#db2777",
+  },
+  pupilInferior: {
+    label: "Bord pupillaire inférieur",
+    short: "PI",
+    hint: "Marge pupillaire en bas",
+    color: "#9f1239",
   },
   cornealReflex: {
     label: "Reflet de Purkinje",
@@ -161,6 +209,26 @@ export function computeAngleLambda(
   };
 }
 
+export type Laterality =
+  | "nasal"
+  | "temporal"
+  | "superior"
+  | "inferior"
+  | "centred";
+
+export type AxisMeasurement = {
+  angleLambdaDeg: number;
+  angleLambdaAbsDeg: number;
+  pupilDiameterMm: number;
+  correctopieMm: number;
+  ratioLambda: number;
+  reflexOffsetMm: number;
+  laterality: Laterality;
+  correctopieLaterality: Laterality;
+  prismDiopters: number;
+  warnings: string[];
+};
+
 export type EyeMeasurement =
   | { status: "empty" }
   | { status: "incomplete"; missing: LandmarkId[] }
@@ -173,12 +241,14 @@ export type EyeMeasurement =
       dacMm: number;
       wtwFromReference: boolean;
       dacFromReference: boolean;
+      horizontal: AxisMeasurement;
+      vertical: AxisMeasurement | null;
       pupilDiameterMm: number;
       correctopieMm: number;
       ratioLambda: number;
       reflexOffsetMm: number;
-      laterality: "nasal" | "temporal" | "centred";
-      correctopieLaterality: "nasal" | "temporal" | "centred";
+      laterality: Laterality;
+      correctopieLaterality: Laterality;
       angleLambdaDeg: number;
       angleLambdaAbsDeg: number;
       prismDiopters: number;
@@ -207,6 +277,65 @@ export function otherLimbus(
   return id === "limbusNasal" ? "limbusTemporal" : "limbusNasal";
 }
 
+export type LimbusEllipse = {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+};
+
+export function limbusEllipse(landmarks: EyeLandmarks): LimbusEllipse | null {
+  const nasal = landmarks.limbusNasal;
+  const temporal = landmarks.limbusTemporal;
+  if (!nasal || !temporal) return null;
+  const cx = (nasal.x + temporal.x) / 2;
+  const cy = (nasal.y + temporal.y) / 2;
+  const rx = distance(nasal, temporal) / 2;
+  const superior = landmarks.limbusSuperior;
+  const inferior = landmarks.limbusInferior;
+  const ry =
+    superior && inferior ? Math.abs(inferior.y - superior.y) / 2 : rx;
+  return { cx, cy, rx, ry };
+}
+
+export function ghostHandles(
+  landmarks: EyeLandmarks,
+): Partial<Record<LandmarkId, Point>> {
+  const ghosts: Partial<Record<LandmarkId, Point>> = {};
+  const cornea = limbusEllipse(landmarks);
+  if (cornea) {
+    if (!landmarks.limbusSuperior) {
+      ghosts.limbusSuperior = { x: cornea.cx, y: cornea.cy - cornea.ry };
+    }
+    if (!landmarks.limbusInferior) {
+      ghosts.limbusInferior = { x: cornea.cx, y: cornea.cy + cornea.ry };
+    }
+  }
+  if (landmarks.pupilNasal && landmarks.pupilTemporal) {
+    const cx = (landmarks.pupilNasal.x + landmarks.pupilTemporal.x) / 2;
+    const cy = (landmarks.pupilNasal.y + landmarks.pupilTemporal.y) / 2;
+    const rx = distance(landmarks.pupilNasal, landmarks.pupilTemporal) / 2;
+    const ry =
+      landmarks.pupilSuperior && landmarks.pupilInferior
+        ? Math.abs(landmarks.pupilInferior.y - landmarks.pupilSuperior.y) / 2
+        : rx;
+    if (!landmarks.pupilSuperior) {
+      ghosts.pupilSuperior = { x: cx, y: cy - ry };
+    }
+    if (!landmarks.pupilInferior) {
+      ghosts.pupilInferior = { x: cx, y: cy + ry };
+    }
+  }
+  return ghosts;
+}
+
+export function displayedPoint(
+  landmarks: EyeLandmarks,
+  id: LandmarkId,
+): Point | null {
+  return landmarks[id] ?? ghostHandles(landmarks)[id] ?? null;
+}
+
 /**
  * Les deux limbes cornéens restent à la même hauteur (axe nasal–temporal).
  * Premier limbe : pose libre. Second : Y du premier. Déplacement : les deux Y suivent.
@@ -217,28 +346,137 @@ export function withAlignedLimbus(
   point: Point,
   mode: "place" | "drag",
 ): EyeLandmarks {
-  if (!isLimbusLandmark(id)) {
-    return { ...landmarks, [id]: point };
+  return applyLandmarkConstraints(landmarks, id, point, mode);
+}
+
+export function applyLandmarkConstraints(
+  landmarks: EyeLandmarks,
+  id: LandmarkId,
+  point: Point,
+  mode: "place" | "drag",
+): EyeLandmarks {
+  if (id === "limbusNasal" || id === "limbusTemporal") {
+    const aligned = alignPair(landmarks, id, "limbusNasal", "limbusTemporal", "y", point, mode);
+    return syncVerticalLimbusToCornea(aligned);
   }
-  const otherId = otherLimbus(id);
+  if (id === "limbusSuperior" || id === "limbusInferior") {
+    return alignVerticalPair(
+      landmarks,
+      id,
+      "limbusSuperior",
+      "limbusInferior",
+      point,
+      corneaCenter(landmarks),
+    );
+  }
+  if (id === "pupilSuperior" || id === "pupilInferior") {
+    return alignVerticalPair(
+      landmarks,
+      id,
+      "pupilSuperior",
+      "pupilInferior",
+      point,
+      pupilHorizontalCenter(landmarks),
+    );
+  }
+  return { ...landmarks, [id]: point };
+}
+
+function alignPair(
+  landmarks: EyeLandmarks,
+  id: LandmarkId,
+  a: LandmarkId,
+  b: LandmarkId,
+  lock: "x" | "y",
+  point: Point,
+  mode: "place" | "drag",
+): EyeLandmarks {
+  const otherId = id === a ? b : a;
   const other = landmarks[otherId];
   if (!other) {
     return { ...landmarks, [id]: point };
   }
   if (mode === "place") {
-    return { ...landmarks, [id]: { x: point.x, y: other.y } };
+    const snapped =
+      lock === "y" ? { x: point.x, y: other.y } : { x: other.x, y: point.y };
+    return { ...landmarks, [id]: snapped };
+  }
+  const moved =
+    lock === "y" ? { x: point.x, y: point.y } : { x: point.x, y: point.y };
+  const otherMoved =
+    lock === "y" ? { x: other.x, y: point.y } : { x: point.x, y: other.y };
+  return { ...landmarks, [id]: moved, [otherId]: otherMoved };
+}
+
+function corneaCenter(landmarks: EyeLandmarks): Point | null {
+  if (!landmarks.limbusNasal || !landmarks.limbusTemporal) return null;
+  return midpoint(landmarks.limbusNasal, landmarks.limbusTemporal);
+}
+
+function pupilHorizontalCenter(landmarks: EyeLandmarks): Point | null {
+  if (!landmarks.pupilNasal || !landmarks.pupilTemporal) return null;
+  return midpoint(landmarks.pupilNasal, landmarks.pupilTemporal);
+}
+
+function alignVerticalPair(
+  landmarks: EyeLandmarks,
+  id: LandmarkId,
+  superiorId: LandmarkId,
+  inferiorId: LandmarkId,
+  point: Point,
+  center: Point | null,
+): EyeLandmarks {
+  const otherId = id === superiorId ? inferiorId : superiorId;
+  if (center) {
+    const y = point.y;
+    return {
+      ...landmarks,
+      [superiorId]: { x: center.x, y: id === superiorId ? y : 2 * center.y - y },
+      [inferiorId]: { x: center.x, y: id === inferiorId ? y : 2 * center.y - y },
+    };
+  }
+  const other = landmarks[otherId];
+  if (!other) {
+    return { ...landmarks, [id]: point };
   }
   return {
     ...landmarks,
-    [id]: { x: point.x, y: point.y },
-    [otherId]: { x: other.x, y: point.y },
+    [id]: { x: other.x, y: point.y },
   };
 }
 
-/** Centre pupillaire estimé : milieu des bords nasal et temporal. */
+function syncVerticalLimbusToCornea(landmarks: EyeLandmarks): EyeLandmarks {
+  const center = corneaCenter(landmarks);
+  if (!center) return landmarks;
+  const next = { ...landmarks };
+  if (next.limbusSuperior) {
+    next.limbusSuperior = { x: center.x, y: next.limbusSuperior.y };
+  }
+  if (next.limbusInferior) {
+    next.limbusInferior = { x: center.x, y: next.limbusInferior.y };
+  }
+  if (next.limbusSuperior && next.limbusInferior) {
+    const ry = Math.abs(next.limbusInferior.y - next.limbusSuperior.y) / 2;
+    next.limbusSuperior = { x: center.x, y: center.y - ry };
+    next.limbusInferior = { x: center.x, y: center.y + ry };
+  }
+  return next;
+}
+
+/** Centre pupillaire : croisement des axes N–T et S–I s’ils existent. */
 export function derivedPupilCenter(landmarks: EyeLandmarks): Point | null {
-  if (!landmarks.pupilNasal || !landmarks.pupilTemporal) return null;
-  return midpoint(landmarks.pupilNasal, landmarks.pupilTemporal);
+  const horizontal =
+    landmarks.pupilNasal && landmarks.pupilTemporal
+      ? midpoint(landmarks.pupilNasal, landmarks.pupilTemporal)
+      : null;
+  const vertical =
+    landmarks.pupilSuperior && landmarks.pupilInferior
+      ? midpoint(landmarks.pupilSuperior, landmarks.pupilInferior)
+      : null;
+  if (horizontal && vertical) {
+    return { x: vertical.x, y: horizontal.y };
+  }
+  return horizontal ?? vertical;
 }
 
 export function missingLandmarks(landmarks: EyeLandmarks): LandmarkId[] {
@@ -288,6 +526,119 @@ export function extractKappaViewPixels(landmarks: EyeLandmarks): KappaViewPixels
   };
 }
 
+export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels | null {
+  const limbusSuperior = landmarks.limbusSuperior;
+  const limbusInferior = landmarks.limbusInferior;
+  const pupilSuperior = landmarks.pupilSuperior;
+  const pupilInferior = landmarks.pupilInferior;
+  const reflex = landmarks.cornealReflex;
+  if (
+    !limbusSuperior ||
+    !limbusInferior ||
+    !pupilSuperior ||
+    !pupilInferior ||
+    !reflex
+  ) {
+    return null;
+  }
+
+  return {
+    corneeNltl: distance(limbusSuperior, limbusInferior),
+    pupilNptp: projectedAlong(
+      pupilSuperior,
+      pupilInferior,
+      limbusSuperior,
+      limbusInferior,
+    ),
+    nppi: projectedAlong(pupilSuperior, reflex, limbusSuperior, limbusInferior),
+    irisNasal: projectedAlong(
+      limbusSuperior,
+      pupilSuperior,
+      limbusSuperior,
+      limbusInferior,
+    ),
+  };
+}
+
+function axisFromComputation(
+  computation: KappaViewResult,
+  wtwMm: number,
+  pixels: KappaViewPixels,
+  orientation: "horizontal" | "vertical",
+): AxisMeasurement | { status: "invalid"; reason: string } {
+  if (pixels.corneeNltl < 8) {
+    return {
+      status: "invalid",
+      reason:
+        orientation === "horizontal"
+          ? "Les points limbiques nasaux et temporaux sont trop proches."
+          : "Les points limbiques supérieur et inférieur sont trop proches.",
+    };
+  }
+  if (pixels.pupilNptp < 4) {
+    return {
+      status: "invalid",
+      reason:
+        orientation === "horizontal"
+          ? "Les bords pupillaires nasal et temporal sont trop proches, ou inversés."
+          : "Les bords pupillaires supérieur et inférieur sont trop proches, ou inversés.",
+    };
+  }
+
+  const centredThresholdMm = 0.04;
+  const positive = orientation === "horizontal" ? "nasal" : "superior";
+  const negative = orientation === "horizontal" ? "temporal" : "inferior";
+  const laterality: Laterality =
+    Math.abs(computation.reflexOffsetMm) < centredThresholdMm
+      ? "centred"
+      : computation.reflexOffsetMm > 0
+        ? positive
+        : negative;
+  const correctopieLaterality: Laterality =
+    Math.abs(computation.correctopieMm) < centredThresholdMm
+      ? "centred"
+      : computation.correctopieMm > 0
+        ? positive
+        : negative;
+
+  const warnings: string[] = [];
+  if (pixels.irisNasal < 0) {
+    warnings.push(
+      orientation === "horizontal"
+        ? "L’iris nasal est négatif : le bord pupillaire nasal n’est pas entre les limbes, côté nez."
+        : "L’iris supérieur est négatif : le bord pupillaire supérieur n’est pas entre les limbes, en haut.",
+    );
+  }
+  if (computation.ratioLambda < 0 || computation.ratioLambda > 1) {
+    warnings.push(
+      orientation === "horizontal"
+        ? "Le reflet de Purkinje est en dehors de la pupille (axe horizontal). Vérifiez PN, PT et P1."
+        : "Le reflet de Purkinje est en dehors de la pupille (axe vertical). Vérifiez PS, PI et P1.",
+    );
+  }
+  if (computation.pupilDiameterMm >= wtwMm) {
+    warnings.push(
+      orientation === "horizontal"
+        ? "Le diamètre pupillaire horizontal dépasse le diamètre cornéen."
+        : "Le diamètre pupillaire vertical dépasse le diamètre cornéen.",
+    );
+  }
+
+  const rad = (computation.angleLambdaDeg * Math.PI) / 180;
+  return {
+    angleLambdaDeg: computation.angleLambdaDeg,
+    angleLambdaAbsDeg: Math.abs(computation.angleLambdaDeg),
+    pupilDiameterMm: computation.pupilDiameterMm,
+    correctopieMm: computation.correctopieMm,
+    ratioLambda: computation.ratioLambda,
+    reflexOffsetMm: computation.reflexOffsetMm,
+    laterality,
+    correctopieLaterality,
+    prismDiopters: 100 * Math.tan(rad),
+    warnings,
+  };
+}
+
 export function measureEye(
   eye: EyeSide,
   landmarks: EyeLandmarks,
@@ -297,72 +648,76 @@ export function measureEye(
     return { status: "empty" };
   }
 
-  const missing = missingLandmarks(landmarks);
-  if (missing.length > 0) {
-    return { status: "incomplete", missing };
-  }
-
   const scale = resolveScale(params);
   if (scale.wtwMm <= 0 || scale.dacMm <= 0) {
     return { status: "invalid", reason: "Paramètres d’échelle invalides." };
   }
 
-  const pixels = extractKappaViewPixels(landmarks);
-  if (!pixels) {
-    return { status: "incomplete", missing: missingLandmarks(landmarks) };
+  const hPixels = extractKappaViewPixels(landmarks);
+  const vPixels = extractVerticalPixels(landmarks);
+
+  let horizontal: AxisMeasurement | null = null;
+  let vertical: AxisMeasurement | null = null;
+  let invalidReason: string | null = null;
+
+  if (hPixels) {
+    const result = axisFromComputation(
+      computeAngleLambda(hPixels, scale),
+      scale.wtwMm,
+      hPixels,
+      "horizontal",
+    );
+    if ("status" in result && result.status === "invalid") {
+      invalidReason = result.reason;
+    } else {
+      horizontal = result as AxisMeasurement;
+    }
+  }
+  if (vPixels) {
+    const result = axisFromComputation(
+      computeAngleLambda(vPixels, scale),
+      scale.wtwMm,
+      vPixels,
+      "vertical",
+    );
+    if (!("status" in result && result.status === "invalid")) {
+      vertical = result as AxisMeasurement;
+    } else if (!invalidReason) {
+      invalidReason = result.reason;
+    }
   }
 
-  if (pixels.corneeNltl < 8) {
+  if (!horizontal && !vertical) {
+    const missingH = HORIZONTAL_REQUIRED.filter((id) => landmarks[id] == null);
+    if (missingH.length > 0) {
+      return { status: "incomplete", missing: missingH };
+    }
+    const missingV = VERTICAL_REQUIRED.filter((id) => landmarks[id] == null);
+    if (missingV.length > 0) {
+      return { status: "incomplete", missing: missingV };
+    }
     return {
       status: "invalid",
-      reason:
-        "Les points limbiques sont trop proches. Replacez le limbe nasal et le limbe temporal aux bords opposés de l’iris.",
+      reason: invalidReason ?? "Mesure impossible. Vérifiez les curseurs.",
     };
   }
 
-  if (pixels.pupilNptp < 4) {
+  if (!horizontal) {
     return {
       status: "invalid",
-      reason:
-        "Les bords pupillaires sont trop proches, ou nasal et temporal sont inversés. Vérifiez PN et PT.",
+      reason: invalidReason ?? "Mesure horizontale impossible.",
     };
   }
 
-  const computation = computeAngleLambda(pixels, scale);
-  const pxPerMm = pixels.corneeNltl / scale.wtwMm;
-
-  const centredThresholdMm = 0.04;
-  const laterality =
-    Math.abs(computation.reflexOffsetMm) < centredThresholdMm
-      ? "centred"
-      : computation.reflexOffsetMm > 0
-        ? "nasal"
-        : "temporal";
-  const correctopieLaterality =
-    Math.abs(computation.correctopieMm) < centredThresholdMm
-      ? "centred"
-      : computation.correctopieMm > 0
-        ? "nasal"
-        : "temporal";
-
-  const warnings: string[] = [];
-  if (pixels.irisNasal < 0) {
-    warnings.push(
-      "L’iris nasal est négatif : le bord pupillaire nasal n’est pas entre les limbes, côté nez.",
-    );
-  }
-  if (computation.ratioLambda < 0 || computation.ratioLambda > 1) {
-    warnings.push(
-      "Le reflet de Purkinje est en dehors de la pupille. Vérifiez PN, PT et P1.",
-    );
-  }
-  if (computation.pupilDiameterMm >= scale.wtwMm) {
-    warnings.push(
-      "Le diamètre pupillaire dépasse le diamètre cornéen : vérifiez les curseurs.",
-    );
-  }
-
-  const rad = (computation.angleLambdaDeg * Math.PI) / 180;
+  const pxPerMm = hPixels
+    ? hPixels.corneeNltl / scale.wtwMm
+    : vPixels
+      ? vPixels.corneeNltl / scale.wtwMm
+      : 1;
+  const warnings = [
+    ...horizontal.warnings,
+    ...(vertical?.warnings ?? []),
+  ];
 
   return {
     status: "ok",
@@ -372,15 +727,17 @@ export function measureEye(
     dacMm: scale.dacMm,
     wtwFromReference: scale.wtwFromReference,
     dacFromReference: scale.dacFromReference,
-    pupilDiameterMm: computation.pupilDiameterMm,
-    correctopieMm: computation.correctopieMm,
-    ratioLambda: computation.ratioLambda,
-    reflexOffsetMm: computation.reflexOffsetMm,
-    laterality,
-    correctopieLaterality,
-    angleLambdaDeg: computation.angleLambdaDeg,
-    angleLambdaAbsDeg: Math.abs(computation.angleLambdaDeg),
-    prismDiopters: 100 * Math.tan(rad),
+    horizontal,
+    vertical,
+    pupilDiameterMm: horizontal.pupilDiameterMm,
+    correctopieMm: horizontal.correctopieMm,
+    ratioLambda: horizontal.ratioLambda,
+    reflexOffsetMm: horizontal.reflexOffsetMm,
+    laterality: horizontal.laterality,
+    correctopieLaterality: horizontal.correctopieLaterality,
+    angleLambdaDeg: horizontal.angleLambdaDeg,
+    angleLambdaAbsDeg: horizontal.angleLambdaAbsDeg,
+    prismDiopters: horizontal.prismDiopters,
     formulaId: FORMULA.id,
     formulaExpression: FORMULA.expression,
     warnings,
@@ -405,12 +762,12 @@ export function formatDeg(value: number, signed = false): string {
   return `${value > 0 ? "+" : "−"}${body}°`;
 }
 
-export function lateralityLabel(
-  laterality: "nasal" | "temporal" | "centred",
-): string {
+export function lateralityLabel(laterality: Laterality): string {
   if (laterality === "centred") return "centré";
   if (laterality === "nasal") return "nasal";
-  return "temporal";
+  if (laterality === "temporal") return "temporal";
+  if (laterality === "superior") return "supérieur";
+  return "inférieur";
 }
 
 export function eyeLabel(eye: EyeSide): string {

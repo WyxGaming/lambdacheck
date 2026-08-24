@@ -27,9 +27,9 @@ function Intro() {
           Angle lambda photographique
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Ouvrez le site, importez une photo monoculaire, posez les cinq
-          curseurs. λ s’affiche tout de suite. Aucun compte, aucune
-          installation, aucune donnée envoyée.
+          Ouvrez le site, importez une photo monoculaire, marquez l’axe
+          horizontal puis l’ellipse du limbe. λ horizontal et λ vertical
+          s’affichent. Aucun compte, aucune installation.
         </p>
       </div>
       <details
@@ -48,9 +48,9 @@ function Intro() {
             Le premier reflet de Purkinje doit être franc, sur la cornée.
           </li>
           <li>
-            Marquez limbe nasal, limbe temporal, bords pupillaires nasal et
-            temporal, puis le reflet. WtW et DAC si connus, sinon 11,71 mm et
-            3,4 mm.
+            Marquez limbe nasal et temporal, étirez l’ellipse haut/bas,
+            posez les bords pupillaires (N, T, S, I) puis le reflet. WtW et
+            DAC si connus, sinon 11,71 mm et 3,4 mm.
           </li>
         </ol>
       </details>

@@ -12,10 +12,13 @@ import {
   type LandmarkId,
   type Point,
   derivedPupilCenter,
+  displayedPoint,
   distance,
+  ghostHandles,
+  limbusEllipse,
   nasalDirectionX,
   nextLandmark,
-  withAlignedLimbus,
+  applyLandmarkConstraints,
 } from "@/lib/lambda";
 import { cn } from "@/lib/utils";
 
@@ -251,7 +254,7 @@ export function PhotoAnnotator({
     if (!layout) return null;
     let best: { id: LandmarkId; dist: number } | null = null;
     for (const id of LANDMARK_ORDER) {
-      const point = landmarksRef.current[id];
+      const point = displayedPoint(landmarksRef.current, id);
       if (!point) continue;
       const screen = imageToCss(point, layout);
       const dist = distance(cssPoint, screen);
@@ -297,6 +300,20 @@ export function PhotoAnnotator({
 
     const imagePoint = eventToImage(event);
     const hit = hitTest(css);
+    const ghosts = ghostHandles(landmarksRef.current);
+    const hitGhost = Boolean(hit && ghosts[hit] && !landmarksRef.current[hit]);
+
+    if (hitGhost && hit) {
+      const ghostPoint = imagePoint ?? ghosts[hit]!;
+      dragRef.current = hit;
+      onActiveLandmarkChange(hit);
+      onLandmarksChange(
+        applyLandmarkConstraints(landmarksRef.current, hit, ghostPoint, "place"),
+      );
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
     const activePlaced = Boolean(landmarksRef.current[activeRef.current]);
     // Un curseur pas encore posé ne doit pas être volé par un voisin trop proche.
     const canDragHit = Boolean(
@@ -323,7 +340,7 @@ export function PhotoAnnotator({
       return;
     }
 
-    const next = withAlignedLimbus(
+    const next = applyLandmarkConstraints(
       landmarksRef.current,
       activeRef.current,
       imagePoint,
@@ -385,7 +402,7 @@ export function PhotoAnnotator({
     const imagePoint = eventToImage(event);
     if (!imagePoint) return;
     onLandmarksChange(
-      withAlignedLimbus(landmarksRef.current, dragId, imagePoint, "drag"),
+      applyLandmarkConstraints(landmarksRef.current, dragId, imagePoint, "drag"),
     );
   };
 
@@ -590,6 +607,7 @@ function drawGuides(
   const pupil = derivedPupilCenter(landmarks);
   const reflex = landmarks.cornealReflex;
   const limbusY = nasal?.y ?? temporal?.y;
+  const ellipse = limbusEllipse(landmarks);
 
   if (limbusY != null) {
     const left = imageToCss({ x: 0, y: limbusY }, layout);
@@ -604,18 +622,37 @@ function drawGuides(
     ctx.setLineDash([]);
   }
 
+  if (ellipse) {
+    const center = imageToCss({ x: ellipse.cx, y: ellipse.cy }, layout);
+    ctx.beginPath();
+    ctx.ellipse(
+      center.x,
+      center.y,
+      ellipse.rx * layout.scale,
+      ellipse.ry * layout.scale,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.75)";
+    ctx.setLineDash(landmarks.limbusSuperior && landmarks.limbusInferior ? [] : [6, 5]);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const top = imageToCss({ x: ellipse.cx, y: ellipse.cy - ellipse.ry }, layout);
+    const bottom = imageToCss({ x: ellipse.cx, y: ellipse.cy + ellipse.ry }, layout);
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y);
+    ctx.lineTo(bottom.x, bottom.y);
+    ctx.strokeStyle = "rgba(167, 139, 250, 0.75)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
   if (temporal && nasal) {
     const a = imageToCss(temporal, layout);
     const b = imageToCss(nasal, layout);
-    const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    const radius = distance(a, b) / 2;
-    ctx.beginPath();
-    ctx.arc(mid.x, mid.y, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.55)";
-    ctx.setLineDash([6, 5]);
-    ctx.lineWidth = 1.25;
-    ctx.stroke();
-    ctx.setLineDash([]);
 
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
@@ -632,6 +669,17 @@ function drawGuides(
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
     ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  if (landmarks.pupilSuperior && landmarks.pupilInferior) {
+    const a = imageToCss(landmarks.pupilSuperior, layout);
+    const b = imageToCss(landmarks.pupilInferior, layout);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = "rgba(244, 114, 182, 0.85)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
   }
@@ -672,6 +720,16 @@ function drawGuides(
     ctx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
     ctx.textAlign = nasalX > 0 ? "left" : "right";
     ctx.fillText("nasal", p.x + nasalX * 32, p.y - 6);
+
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x, p.y - 28);
+    ctx.strokeStyle = "rgba(167, 139, 250, 0.9)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(167, 139, 250, 0.95)";
+    ctx.textAlign = "center";
+    ctx.fillText("sup.", p.x, p.y - 32);
   }
 }
 
@@ -681,39 +739,45 @@ function drawLandmarks(
   landmarks: EyeLandmarks,
   active: LandmarkId,
 ) {
+  const ghosts = ghostHandles(landmarks);
   for (const id of LANDMARK_ORDER) {
-    const point = landmarks[id];
+    const point = landmarks[id] ?? ghosts[id];
     if (!point) continue;
     const screen = imageToCss(point, layout);
     const meta = LANDMARK_META[id];
     const isActive = id === active;
+    const isGhost = !landmarks[id];
 
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, isActive ? 11 : 9, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillStyle = isGhost ? "rgba(0,0,0,0.15)" : "rgba(0,0,0,0.35)";
     ctx.fill();
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, isActive ? 8 : 6.5, 0, Math.PI * 2);
-    ctx.fillStyle = meta.color;
+    ctx.fillStyle = isGhost ? "rgba(255,255,255,0.2)" : meta.color;
     ctx.fill();
     ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = isGhost ? 1 : 1.5;
+    ctx.setLineDash(isGhost ? [3, 2] : []);
     ctx.stroke();
+    ctx.setLineDash([]);
 
-    ctx.beginPath();
-    ctx.moveTo(screen.x - 12, screen.y);
-    ctx.lineTo(screen.x + 12, screen.y);
-    ctx.moveTo(screen.x, screen.y - 12);
-    ctx.lineTo(screen.x, screen.y + 12);
-    ctx.strokeStyle = "rgba(255,255,255,0.9)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    if (!isGhost) {
+      ctx.beginPath();
+      ctx.moveTo(screen.x - 12, screen.y);
+      ctx.lineTo(screen.x + 12, screen.y);
+      ctx.moveTo(screen.x, screen.y - 12);
+      ctx.lineTo(screen.x, screen.y + 12);
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
 
     ctx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
     ctx.textAlign = "left";
     ctx.fillStyle = "rgba(0,0,0,0.55)";
     ctx.fillText(meta.short, screen.x + 11, screen.y - 10);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = isGhost ? "rgba(255,255,255,0.7)" : "#fff";
     ctx.fillText(meta.short, screen.x + 10, screen.y - 11);
   }
 }
