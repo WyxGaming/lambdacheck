@@ -13,6 +13,7 @@ import {
   applyLandmarkConstraints,
   computeAngleLambda,
   distanceToEllipse,
+  elevationFromHorizontal,
   extractKappaViewPixels,
   ghostHandles,
   isPhysiologicalAngle,
@@ -220,6 +221,13 @@ test("λ vertical : reflet supérieur au centre pupillaire → λv positif", () 
       measurement.vertical!.angleLambdaMm,
     ).toFixed(6),
   );
+  assert.equal(
+    measurement.oblique!.elevationDeg.toFixed(6),
+    elevationFromHorizontal(
+      measurement.angleLambdaDeg,
+      measurement.vertical!.angleLambdaDeg,
+    ).toFixed(6),
+  );
 });
 
 test("mesure horizontale possible avant d’avoir fini le vertical", () => {
@@ -327,4 +335,12 @@ test("λ nasal est physiologique de 0° à 3°, les autres directions jusqu’à
   assert.equal(isPhysiologicalAngle("temporal", 0.61), false);
   assert.equal(isPhysiologicalAngle("superior", 0.5), true);
   assert.equal(isPhysiologicalAngle("inferior", 0.9), false);
+});
+
+test("l’élévation est l’angle de λ oblique par rapport à l’horizontale", () => {
+  assert.equal(elevationFromHorizontal(3, 3).toFixed(6), (45).toFixed(6));
+  assert.equal(elevationFromHorizontal(4, 0).toFixed(6), (0).toFixed(6));
+  assert.equal(elevationFromHorizontal(0, 2).toFixed(6), (90).toFixed(6));
+  assert.equal(elevationFromHorizontal(3, -3).toFixed(6), (-45).toFixed(6));
+  assert.equal(elevationFromHorizontal(-2, 2).toFixed(6), (45).toFixed(6));
 });

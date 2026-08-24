@@ -248,6 +248,7 @@ export type EyeMeasurement =
       oblique: {
         angleLambdaDeg: number;
         angleLambdaMm: number;
+        elevationDeg: number;
         physiological: boolean;
       } | null;
       pupilDiameterMm: number;
@@ -266,16 +267,32 @@ export type EyeMeasurement =
       warnings: string[];
     };
 
+export function elevationFromHorizontal(
+  horizontalDeg: number,
+  verticalDeg: number,
+): number {
+  return (Math.atan2(verticalDeg, Math.abs(horizontalDeg)) * 180) / Math.PI;
+}
+
 export function obliqueLambda(
   horizontal: AxisMeasurement,
   vertical: AxisMeasurement,
-): { angleLambdaDeg: number; angleLambdaMm: number; physiological: boolean } {
+): {
+  angleLambdaDeg: number;
+  angleLambdaMm: number;
+  elevationDeg: number;
+  physiological: boolean;
+} {
   return {
     angleLambdaDeg: Math.hypot(
       horizontal.angleLambdaDeg,
       vertical.angleLambdaDeg,
     ),
     angleLambdaMm: Math.hypot(horizontal.angleLambdaMm, vertical.angleLambdaMm),
+    elevationDeg: elevationFromHorizontal(
+      horizontal.angleLambdaDeg,
+      vertical.angleLambdaDeg,
+    ),
     physiological: horizontal.physiological && vertical.physiological,
   };
 }
