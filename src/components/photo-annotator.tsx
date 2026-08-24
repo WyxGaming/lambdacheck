@@ -130,8 +130,7 @@ export function PhotoAnnotator({
     const img = new Image();
     const markReady = () => {
       if (cancelled) return;
-      const width = img.naturalWidth || img.width;
-      const height = img.naturalHeight || img.height;
+      const { width, height } = intrinsicSize(img);
       if (width < 1 || height < 1) return;
       imageRef.current = img;
       setFailedUrl((current) => (current === imageUrl ? null : current));
@@ -183,21 +182,31 @@ export function PhotoAnnotator({
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
+
+    if (!img) {
+      if (!imageUrl) {
+        ctx.fillStyle = "#0b1211";
+        ctx.fillRect(0, 0, cssW, cssH);
+      }
+      return;
+    }
+
+    const size = intrinsicSize(img);
+    if (size.width < 1 || size.height < 1) return;
+
     ctx.fillStyle = "#0b1211";
     ctx.fillRect(0, 0, cssW, cssH);
-
-    if (!img) return;
 
     const layout = layoutFor(img, cssW, cssH, viewRef.current);
     ctx.drawImage(
       img,
       layout.ox,
       layout.oy,
-      img.width * layout.scale,
-      img.height * layout.scale,
+      size.width * layout.scale,
+      size.height * layout.scale,
     );
 
-    drawGuides(ctx, layout, landmarksRef.current, eye, img.width);
+    drawGuides(ctx, layout, landmarksRef.current, eye, size.width);
     drawLimbusHandles(ctx, layout, landmarksRef.current);
     drawLandmarks(ctx, layout, landmarksRef.current, activeRef.current);
 
@@ -211,7 +220,7 @@ export function PhotoAnnotator({
     ) {
       drawLoupe(ctx, img, layout, pointer, cssW);
     }
-  }, [eye]);
+  }, [eye, imageUrl]);
 
   useEffect(() => {
     redraw();
@@ -583,10 +592,33 @@ export function PhotoAnnotator({
         ref={containerRef}
         className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#0b1211] ring-1 ring-foreground/10"
       >
+        {imageUrl && (
+          <img
+            key={imageUrl}
+            src={imageUrl}
+            alt=""
+            draggable={false}
+            className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain"
+            onLoad={(event) => {
+              const img = event.currentTarget;
+              const size = intrinsicSize(img);
+              if (size.width < 1 || size.height < 1) return;
+              imageRef.current = img;
+              setFailedUrl((current) => (current === imageUrl ? null : current));
+              setLoadedUrl(imageUrl);
+              setImageVersion((version) => version + 1);
+            }}
+            onError={() => {
+              imageRef.current = null;
+              setFailedUrl(imageUrl);
+              setImageVersion((version) => version + 1);
+            }}
+          />
+        )}
         <canvas
           ref={canvasRef}
           className={cn(
-            "h-full w-full touch-none",
+            "absolute inset-0 z-10 h-full w-full touch-none bg-transparent",
             imageUrl ? "cursor-crosshair" : "cursor-default",
           )}
           style={imageUrl ? { cursor: "crosshair" } : undefined}
@@ -597,7 +629,7 @@ export function PhotoAnnotator({
           onPointerLeave={handlePointerLeave}
         />
         {imageUrl && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/55 p-1 text-white backdrop-blur-sm">
+          <div className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-lg bg-black/55 p-1 text-white backdrop-blur-sm">
             <Button
               type="button"
               size="icon-xs"
@@ -631,7 +663,7 @@ export function PhotoAnnotator({
           </div>
         )}
         {!imageUrl && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-6 text-center">
             <p className="max-w-sm text-sm text-white/70">
               Déposez ou importez une photo monoculaire de{" "}
               {eye === "OD" ? "l’œil droit" : "l’œil gauche"} — limbe entier,
@@ -639,13 +671,8 @@ export function PhotoAnnotator({
             </p>
           </div>
         )}
-        {imageStatus === "loading" && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
-            <p className="text-sm text-white/70">Chargement de la photographie…</p>
-          </div>
-        )}
         {imageStatus === "error" && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-6 text-center">
             <p className="max-w-sm text-sm text-rose-200">
               Impossible d’afficher cette image. Réessayez avec un JPEG ou un PNG.
             </p>
@@ -656,7 +683,7 @@ export function PhotoAnnotator({
           landmarks.limbusNasal &&
           landmarks.limbusTemporal &&
           !(landmarks.limbusSuperior && landmarks.limbusInferior) && (
-          <p className="pointer-events-none absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-2 py-1.5 text-center text-[11px] leading-snug text-white/90 backdrop-blur-sm">
+          <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 rounded-md bg-black/55 px-2 py-1.5 text-center text-[11px] leading-snug text-white/90 backdrop-blur-sm">
             Glissez les poignées ou le contour pour coller l’ellipse au limbe.
             Le centre déplace l’ensemble.
           </p>
@@ -666,18 +693,26 @@ export function PhotoAnnotator({
   );
 }
 
+function intrinsicSize(img: HTMLImageElement): { width: number; height: number } {
+  return {
+    width: img.naturalWidth || img.width,
+    height: img.naturalHeight || img.height,
+  };
+}
+
 function layoutFor(
   img: HTMLImageElement,
   cssW: number,
   cssH: number,
   view: View,
 ): Layout {
-  const fit = Math.min(cssW / img.width, cssH / img.height);
+  const { width, height } = intrinsicSize(img);
+  const fit = Math.min(cssW / width, cssH / height);
   const scale = fit * view.zoom;
   return {
     scale,
-    ox: (cssW - img.width * scale) / 2 + view.panX,
-    oy: (cssH - img.height * scale) / 2 + view.panY,
+    ox: (cssW - width * scale) / 2 + view.panX,
+    oy: (cssH - height * scale) / 2 + view.panY,
   };
 }
 
@@ -689,9 +724,10 @@ function clampView(
 ): View {
   const zoom = clamp(view.zoom, MIN_ZOOM, MAX_ZOOM);
   if (zoom <= 1.001) return IDENTITY_VIEW;
-  const fit = Math.min(cssW / img.width, cssH / img.height);
-  const imgW = img.width * fit * zoom;
-  const imgH = img.height * fit * zoom;
+  const { width, height } = intrinsicSize(img);
+  const fit = Math.min(cssW / width, cssH / height);
+  const imgW = width * fit * zoom;
+  const imgH = height * fit * zoom;
   const maxX = Math.max(0, (imgW - cssW) / 2 + 32);
   const maxY = Math.max(0, (imgH - cssH) / 2 + 32);
   return {
@@ -711,15 +747,16 @@ function zoomTo(
 ): View {
   const zoom = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
   if (zoom <= 1.001) return IDENTITY_VIEW;
+  const { width, height } = intrinsicSize(img);
   const before = layoutFor(img, cssW, cssH, current);
   const imgX = (focalCss.x - before.ox) / before.scale;
   const imgY = (focalCss.y - before.oy) / before.scale;
-  const fit = Math.min(cssW / img.width, cssH / img.height);
+  const fit = Math.min(cssW / width, cssH / height);
   const scale = fit * zoom;
   return {
     zoom,
-    panX: focalCss.x - imgX * scale - (cssW - img.width * scale) / 2,
-    panY: focalCss.y - imgY * scale - (cssH - img.height * scale) / 2,
+    panX: focalCss.x - imgX * scale - (cssW - width * scale) / 2,
+    panY: focalCss.y - imgY * scale - (cssH - height * scale) / 2,
   };
 }
 
@@ -744,11 +781,12 @@ function cssToImage(
   img: HTMLImageElement,
 ): Point | null {
   const point = cssToImageUnclamped(css, layout);
+  const size = intrinsicSize(img);
   if (
     point.x < 0 ||
     point.y < 0 ||
-    point.x > img.width ||
-    point.y > img.height
+    point.x > size.width ||
+    point.y > size.height
   ) {
     return null;
   }

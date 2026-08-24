@@ -12,7 +12,7 @@ import {
 
 import { PhotoAnnotator } from "@/components/photo-annotator";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -357,10 +357,15 @@ function EyeToolbar({
           }}
         />
       </label>
-      <Button type="button" variant="outline" onClick={onDemo}>
+      <button
+        id="load-demo-eye"
+        type="button"
+        className={cn(buttonVariants({ variant: "outline" }))}
+        onClick={onDemo}
+      >
         <Sparkles />
         Exemple pédagogique
-      </Button>
+      </button>
       <Button type="button" variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
         <Eraser />
         Effacer les points
