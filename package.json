@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0 --port 43127",
+    "dev": "node scripts/dev-proxy.mjs",
     "build": "next build",
     "start": "npx --yes serve out -s -l tcp://0.0.0.0:43127",
     "lint": "eslint",
