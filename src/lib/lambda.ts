@@ -226,6 +226,7 @@ export type AxisMeasurement = {
   reflexOffsetMm: number;
   laterality: Laterality;
   correctopieLaterality: Laterality;
+  physiological: boolean;
   prismDiopters: number;
   warnings: string[];
 };
@@ -247,6 +248,7 @@ export type EyeMeasurement =
       oblique: {
         angleLambdaDeg: number;
         angleLambdaMm: number;
+        physiological: boolean;
       } | null;
       pupilDiameterMm: number;
       correctopieMm: number;
@@ -254,6 +256,7 @@ export type EyeMeasurement =
       reflexOffsetMm: number;
       laterality: Laterality;
       correctopieLaterality: Laterality;
+      physiological: boolean;
       angleLambdaDeg: number;
       angleLambdaAbsDeg: number;
       angleLambdaMm: number;
@@ -266,13 +269,14 @@ export type EyeMeasurement =
 export function obliqueLambda(
   horizontal: AxisMeasurement,
   vertical: AxisMeasurement,
-): { angleLambdaDeg: number; angleLambdaMm: number } {
+): { angleLambdaDeg: number; angleLambdaMm: number; physiological: boolean } {
   return {
     angleLambdaDeg: Math.hypot(
       horizontal.angleLambdaDeg,
       vertical.angleLambdaDeg,
     ),
     angleLambdaMm: Math.hypot(horizontal.angleLambdaMm, vertical.angleLambdaMm),
+    physiological: horizontal.physiological && vertical.physiological,
   };
 }
 
@@ -708,6 +712,7 @@ function axisFromComputation(
     reflexOffsetMm: computation.reflexOffsetMm,
     laterality,
     correctopieLaterality,
+    physiological: isPhysiologicalAngle(laterality, computation.angleLambdaDeg),
     prismDiopters: 100 * Math.tan(rad),
     warnings,
   };
@@ -810,6 +815,7 @@ export function measureEye(
     reflexOffsetMm: horizontal.reflexOffsetMm,
     laterality: horizontal.laterality,
     correctopieLaterality: horizontal.correctopieLaterality,
+    physiological: horizontal.physiological,
     angleLambdaDeg: horizontal.angleLambdaDeg,
     angleLambdaAbsDeg: horizontal.angleLambdaAbsDeg,
     angleLambdaMm: horizontal.angleLambdaMm,
@@ -845,6 +851,26 @@ export function formatDeg(value: number, signed = false): string {
   if (!signed) return `${body}°`;
   if (Math.abs(value) < 0.005) return `${body}°`;
   return `${value > 0 ? "+" : "−"}${body}°`;
+}
+
+/** Intervalle physiologique de λ nasal, en degrés. */
+export const PHYSIOLOGICAL_NASAL_MAX_DEG = 3;
+/** Seuil physiologique de λ pour temporal, supérieur et inférieur, en degrés. */
+export const PHYSIOLOGICAL_OTHER_MAX_DEG = 0.6;
+
+export function isPhysiologicalAngle(
+  laterality: Laterality,
+  angleDeg: number,
+): boolean {
+  if (laterality === "centred") return true;
+  if (laterality === "nasal") {
+    return angleDeg >= 0 && angleDeg <= PHYSIOLOGICAL_NASAL_MAX_DEG;
+  }
+  return Math.abs(angleDeg) <= PHYSIOLOGICAL_OTHER_MAX_DEG;
+}
+
+export function physiologicalLabel(physiological: boolean): string {
+  return physiological ? "physiologique" : "hors norme";
 }
 
 export function lateralityLabel(laterality: Laterality): string {

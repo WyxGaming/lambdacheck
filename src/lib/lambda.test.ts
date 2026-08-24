@@ -5,18 +5,21 @@ import {
   DEFAULT_PARAMS,
   LAMBDA_GAIN,
   LAMBDA_OFFSET,
+  PHYSIOLOGICAL_NASAL_MAX_DEG,
+  PHYSIOLOGICAL_OTHER_MAX_DEG,
   PUPIL_APPARENT_FACTOR,
   REFERENCE_DAC_MM,
   REFERENCE_WTW_MM,
+  applyLandmarkConstraints,
   computeAngleLambda,
   distanceToEllipse,
   extractKappaViewPixels,
   ghostHandles,
+  isPhysiologicalAngle,
   limbusEllipse,
   limbusEllipseHandles,
   measureEye,
   nearestEllipseHandle,
-  applyLandmarkConstraints,
   resolveScale,
   translateCornea,
   withAlignedLimbus,
@@ -311,4 +314,17 @@ test("les bords pupillaires se posent librement, sans ellipse ni miroir", () => 
   );
   assert.deepEqual(dragged.pupilSuperior, { x: 230, y: 120 });
   assert.deepEqual(dragged.pupilInferior, { x: 185, y: 270 });
+});
+
+test("λ nasal est physiologique de 0° à 3°, les autres directions jusqu’à 0,60°", () => {
+  assert.equal(isPhysiologicalAngle("nasal", 0), true);
+  assert.equal(isPhysiologicalAngle("nasal", 2.5), true);
+  assert.equal(isPhysiologicalAngle("nasal", PHYSIOLOGICAL_NASAL_MAX_DEG), true);
+  assert.equal(isPhysiologicalAngle("nasal", 3.01), false);
+  assert.equal(isPhysiologicalAngle("centred", 0), true);
+  assert.equal(isPhysiologicalAngle("temporal", 0.6), true);
+  assert.equal(isPhysiologicalAngle("temporal", PHYSIOLOGICAL_OTHER_MAX_DEG), true);
+  assert.equal(isPhysiologicalAngle("temporal", 0.61), false);
+  assert.equal(isPhysiologicalAngle("superior", 0.5), true);
+  assert.equal(isPhysiologicalAngle("inferior", 0.9), false);
 });

@@ -34,6 +34,7 @@ import {
   type EyeSide,
   type FormulaParams,
   type LandmarkId,
+  type Laterality,
   eyeLabel,
   formatDeg,
   formatMm,
@@ -41,6 +42,7 @@ import {
   measureEye,
   nextLandmark,
   obliqueLateralityLabel,
+  physiologicalLabel,
   REFERENCE_DAC_MM,
   REFERENCE_WTW_MM,
   resolveScale,
@@ -463,6 +465,7 @@ function ResultsCard({
         <CardDescription>
           {patientRef ? `Patient ${patientRef} · ` : null}
           Un œil puis l’autre · λ horizontal, vertical et oblique.
+          Physiologique : 0 à 3° en nasal, jusqu’à 0,60° ailleurs.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -533,11 +536,10 @@ function EyeResult({
               {formatMm(measurement.angleLambdaMm, true)}
             </p>
           </div>
-          <Badge
-            variant={measurement.laterality === "temporal" ? "destructive" : "secondary"}
-          >
-            {lateralityLabel(measurement.laterality)}
-          </Badge>
+          <AxisStatus
+            laterality={measurement.laterality}
+            physiological={measurement.physiological}
+          />
         </div>
       </div>
       <div>
@@ -552,15 +554,10 @@ function EyeResult({
                 {formatMm(measurement.vertical.angleLambdaMm, true)}
               </p>
             </div>
-            <Badge
-              variant={
-                measurement.vertical.laterality === "inferior"
-                  ? "destructive"
-                  : "secondary"
-              }
-            >
-              {lateralityLabel(measurement.vertical.laterality)}
-            </Badge>
+            <AxisStatus
+              laterality={measurement.vertical.laterality}
+              physiological={measurement.vertical.physiological}
+            />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -580,12 +577,21 @@ function EyeResult({
                 {formatMm(measurement.oblique.angleLambdaMm)}
               </p>
             </div>
-            <Badge variant="secondary">
-              {obliqueLateralityLabel(
-                measurement.laterality,
-                measurement.vertical.laterality,
-              )}
-            </Badge>
+            <div className="flex flex-col items-end gap-1">
+              <Badge variant="secondary">
+                {obliqueLateralityLabel(
+                  measurement.laterality,
+                  measurement.vertical.laterality,
+                )}
+              </Badge>
+              <Badge
+                variant={
+                  measurement.oblique.physiological ? "secondary" : "destructive"
+                }
+              >
+                {physiologicalLabel(measurement.oblique.physiological)}
+              </Badge>
+            </div>
           </div>
         </div>
       )}
@@ -648,6 +654,23 @@ function EyeResult({
           {warning}
         </p>
       ))}
+    </div>
+  );
+}
+
+function AxisStatus({
+  laterality,
+  physiological,
+}: {
+  laterality: Laterality;
+  physiological: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Badge variant="secondary">{lateralityLabel(laterality)}</Badge>
+      <Badge variant={physiological ? "secondary" : "destructive"}>
+        {physiologicalLabel(physiological)}
+      </Badge>
     </div>
   );
 }
@@ -748,11 +771,11 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}, ${physiologicalLabel(measurement.physiological)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
   if (!measurement.vertical || !measurement.oblique) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {
