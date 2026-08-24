@@ -22,14 +22,14 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "LambdaCOR — angle lambda photographique",
+  title: "LambdaCheck — angle lambda photographique",
   description:
     "Ouvrez le navigateur, importez une photo monoculaire, lisez λ. Aucun compte, aucune installation.",
-  applicationName: "LambdaCOR",
+  applicationName: "LambdaCheck",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "LambdaCOR",
+    title: "LambdaCheck",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },

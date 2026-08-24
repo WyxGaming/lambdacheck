@@ -1,4 +1,4 @@
-# LambdaCOR
+# LambdaCheck
 
 Outil web **prêt à l’emploi** pour orthoptistes et ophtalmologistes : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 

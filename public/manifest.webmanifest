@@ -1,6 +1,6 @@
 {
-  "name": "LambdaCOR",
-  "short_name": "LambdaCOR",
+  "name": "LambdaCheck",
+  "short_name": "LambdaCheck",
   "description": "Mesure de l’angle lambda à partir de photographies monoculaires. Fonctionne hors ligne une fois chargé, sans compte.",
   "start_url": "./",
   "scope": "./",

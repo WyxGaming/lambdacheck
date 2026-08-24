@@ -16,7 +16,7 @@ export function SiteHeader({ className }: { className?: string }) {
         <Link href="/" className="flex items-center gap-2.5">
           <LogoMark />
           <div className="leading-tight">
-            <p className="font-heading text-lg tracking-tight">LambdaCOR</p>
+            <p className="font-heading text-lg tracking-tight">LambdaCheck</p>
             <p className="text-[11px] text-muted-foreground">
               Prêt à l’emploi · photos locales
             </p>
@@ -46,7 +46,7 @@ export function SiteFooter() {
     <footer className="border-t border-border bg-card">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:px-6">
         <p>
-          LambdaCOR est un outil d’aide à la mesure. Il ne remplace pas
+          LambdaCheck est un outil d’aide à la mesure. Il ne remplace pas
           l’examen clinique. Les photographies restent dans le navigateur.
         </p>
       </div>

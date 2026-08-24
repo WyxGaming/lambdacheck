@@ -620,7 +620,7 @@ function buildReport(
     ? `${formatMm(scale.wtwMm)} (référence)`
     : `${formatMm(scale.wtwMm)} (saisie)`;
   const lines = [
-    "LambdaCOR — angle lambda photographique",
+    "LambdaCheck — angle lambda photographique",
     date,
     patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
     `WtW ${wtwLabel} · DAC ${dacLabel}`,
