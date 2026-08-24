@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,7 +24,21 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "LambdaCOR — angle lambda photographique",
   description:
-    "Outil pour orthoptistes et ophtalmologistes : calcul de l’angle lambda de chaque œil à partir de photographies monoculaires avec reflets cornéens.",
+    "Ouvrez le navigateur, importez une photo monoculaire, lisez λ. Aucun compte, aucune installation.",
+  applicationName: "LambdaCOR",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "LambdaCOR",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2a6b70",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

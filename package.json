@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0 --port 43127",
     "build": "next build",
-    "start": "next start --hostname 0.0.0.0 --port 43127",
+    "start": "npx --yes serve out -s -l tcp://0.0.0.0:43127",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test src/lib/lambda.test.ts"
   },

@@ -12,25 +12,28 @@ export function SiteHeader({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <LogoMark />
           <div className="leading-tight">
             <p className="font-heading text-lg tracking-tight">LambdaCOR</p>
             <p className="text-[11px] text-muted-foreground">
-              Angle lambda photographique
+              Prêt à l’emploi · photos locales
             </p>
           </div>
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          <a href="#protocole" className="hidden text-muted-foreground hover:text-foreground sm:inline">
+        <nav className="flex items-center gap-3 text-sm">
+          <a
+            href="#protocole"
+            className="hidden text-muted-foreground hover:text-foreground sm:inline"
+          >
             Protocole
           </a>
           <a
             href="#mesure"
             className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
           >
-            Nouvelle mesure
+            Mesurer
           </a>
         </nav>
       </div>
@@ -41,14 +44,11 @@ export function SiteHeader({ className }: { className?: string }) {
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-card">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-8 text-sm text-muted-foreground sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:px-6">
         <p>
-          LambdaCOR est un outil d’aide à la mesure pour orthoptistes et
-          ophtalmologistes. Il ne remplace pas l’examen clinique. Les
-          photographies restent dans le navigateur et ne sont pas transmises à
-          un serveur.
+          LambdaCOR est un outil d’aide à la mesure. Il ne remplace pas
+          l’examen clinique. Les photographies restent dans le navigateur.
         </p>
-        <p>Les photographies restent dans le navigateur.</p>
       </div>
     </footer>
   );

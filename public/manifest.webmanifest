@@ -1,0 +1,19 @@
+{
+  "name": "LambdaCOR",
+  "short_name": "LambdaCOR",
+  "description": "Mesure de l’angle lambda à partir de photographies monoculaires. Fonctionne hors ligne une fois chargé, sans compte.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f6f0",
+  "theme_color": "#2a6b70",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

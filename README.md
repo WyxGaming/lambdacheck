@@ -1,10 +1,16 @@
 # LambdaCOR
 
-Outil web pour **orthoptistes** et **ophtalmologistes** : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
+Outil web **prêt à l’emploi** pour orthoptistes et ophtalmologistes : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 
-Formule **KappaView** (Hôpital Necker-Enfants malades). Les photos restent dans le navigateur.
+Aucun compte, aucun serveur de données. Les photos restent dans le navigateur.
 
-## Démarrage
+## Utilisation (cliniciens)
+
+Ouvrez le site dans un navigateur (ordinateur ou tablette). Importez OD puis OS, posez les cinq curseurs, lisez λ.
+
+Sur tablette, le site peut être ajouté à l’écran d’accueil (application autonome).
+
+## Démarrage local
 
 ```bash
 npm install
@@ -13,9 +19,20 @@ npm run dev
 
 Ouvrez [http://127.0.0.1:43127](http://127.0.0.1:43127).
 
+## Site statique (clé USB, intranet, hébergement)
+
+Le build produit un dossier `out/` autonome : copiez-le tel quel.
+
 ```bash
-npm test    # vérifie la formule KappaView et la géométrie
+npm install
 npm run build
+npm start          # sert le dossier out/ sur http://127.0.0.1:43127
+```
+
+Déposez `out/` sur n’importe quel serveur de fichiers statiques (Nginx, Apache, Netlify, dossier partagé). Pas de Node.js côté clinicien.
+
+```bash
+npm test    # vérifie le calcul et la géométrie
 ```
 
 ## Mesure
@@ -52,4 +69,4 @@ Convention d’image : patient de face, photo non retournée. Nasal à droite po
 
 ## Pile
 
-Next.js, TypeScript, Tailwind CSS, shadcn/ui. Tout le traitement d’image est côté client.
+Next.js (export statique), TypeScript, Tailwind CSS, shadcn/ui. Tout le traitement d’image est côté client.

@@ -249,8 +249,9 @@ export function PhotoAnnotator({
         {!imageUrl && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
             <p className="max-w-sm text-sm text-white/70">
-              Importez une photographie monoculaire de {eye === "OD" ? "l’œil droit" : "l’œil gauche"}
-              , limbe entier visible, reflet cornéen net.
+              Déposez ou importez une photo monoculaire de{" "}
+              {eye === "OD" ? "l’œil droit" : "l’œil gauche"} — limbe entier,
+              reflet cornéen net.
             </p>
           </div>
         )}

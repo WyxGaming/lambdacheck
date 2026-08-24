@@ -159,12 +159,11 @@ export function ExamWorkspace() {
             Mesure
           </p>
           <h2 className="font-heading mt-1 text-3xl tracking-tight">
-            Examen photographique
+            Nouvelle mesure
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Chargez une photo par œil, placez les cinq curseurs, et l’angle
-            lambda se calcule immédiatement. Rien n’est envoyé hors de cet
-            appareil.
+            Importez ou déposez une photo par œil, posez les cinq curseurs.
+            Le résultat s’affiche sans réglage préalable.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -437,17 +436,6 @@ function ResultsCard({
         <EyeResult eye="OD" measurement={od} />
         <Separator />
         <EyeResult eye="OS" measurement={os} />
-        {od.status === "ok" && os.status === "ok" && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-xs text-muted-foreground">Différence interoculaire</p>
-              <p className="font-heading text-xl tabular-nums">
-                {formatDeg(Math.abs(od.angleLambdaDeg - os.angleLambdaDeg))}
-              </p>
-            </div>
-          </>
-        )}
       </CardContent>
     </Card>
   );
