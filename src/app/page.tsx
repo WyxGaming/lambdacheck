@@ -64,9 +64,8 @@ function Hero() {
               pupillaire temporal, reflet de Purkinje.
             </li>
             <li>
-              <span className="font-medium text-foreground">Un résultat signé</span>{" "}
-              — λ en degrés, nasal ou temporal, plus l’équivalent en dioptries
-              prismatiques.
+              <span className="font-medium text-foreground">Un résultat KappaView</span>{" "}
+              — λ, diamètre pupillaire et correctopie (excentration pupillaire).
             </li>
           </ul>
           <p className="mt-6 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
@@ -91,7 +90,7 @@ function Protocol() {
     },
     {
       title: "Marquer, puis lire λ",
-      body: "Posez limbe nasal et temporal, les deux bords pupillaires, puis le reflet de Purkinje. Le centre pupillaire est le milieu des bords. L’angle s’affiche pour OD et OS, nasal ou temporal.",
+      body: "Posez limbe nasal et temporal, les deux bords pupillaires, puis le reflet de Purkinje. Saisissez WtW et DAC s’ils sont connus, sinon les valeurs par défaut de KappaView s’appliquent.",
     },
   ];
 
@@ -132,12 +131,12 @@ function FormulaSection() {
         Calcul
       </p>
       <h2 className="font-heading mt-1 text-3xl tracking-tight">
-        Formule en attente de votre relation clinique
+        Formule KappaView — Necker-Enfants malades
       </h2>
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Expression actuelle</p>
-          <p className="font-heading mt-2 text-3xl tracking-tight">
+          <p className="text-sm text-muted-foreground">Angle lambda</p>
+          <p className="font-heading mt-2 text-2xl tracking-tight sm:text-3xl">
             {FORMULA.expression}
           </p>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
@@ -145,31 +144,51 @@ function FormulaSection() {
           </p>
           <dl className="mt-6 grid gap-3 text-sm">
             <div>
-              <dt className="text-muted-foreground">δ</dt>
+              <dt className="text-muted-foreground">Diamètre pupillaire</dt>
               <dd>
-                Distance horizontale reflet de Purkinje → centre pupillaire
-                (milieu des bords nasal et temporal), convertie en mm grâce au
-                HVID, positive vers le nasal.
+                Øp = 0,86 × WtW × (distance pupille nasale–temporale / distance
+                cornée nasale–temporale), en mm.
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Convention d’image</dt>
+              <dt className="text-muted-foreground">Correctopie</dt>
               <dd>
-                Patient de face, photo non retournée. Pour l’OD le nasal est à
-                droite ; pour l’OS le nasal est à gauche.
+                Excentration du centre pupillaire par rapport au centre cornéen,
+                positive vers le nasal.
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Valeurs par défaut</dt>
+              <dd>
+                WtW = 11,71 mm, DAC = 3,4 mm si la biométrie n’est pas saisie.
               </dd>
             </div>
           </dl>
         </div>
         <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6">
-          <p className="text-sm font-medium">Quand la formule arrivera</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Le marquage, l’échelle et le compte-rendu restent en place. Seule la
-            fonction <code className="rounded bg-background px-1 py-0.5 text-foreground">computeAngleLambda</code>{" "}
-            dans <code className="rounded bg-background px-1 py-0.5 text-foreground">src/lib/lambda.ts</code>{" "}
-            sera remplacée. Les grandeurs déjà mesurées (δ nasal, composante
-            verticale, déplacement radial, diamètre pupillaire, R, HVID, côté)
-            sont prêtes à l’emploi.
+          <p className="text-sm font-medium">Grandeurs issues de la photo</p>
+          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+            <li>
+              <span className="font-medium text-foreground">cornee_NLTL</span> —
+              limbe nasal → limbe temporal
+            </li>
+            <li>
+              <span className="font-medium text-foreground">pupil_NPTP</span> —
+              bord pupillaire nasal → bord pupillaire temporal
+            </li>
+            <li>
+              <span className="font-medium text-foreground">NPPI</span> — bord
+              pupillaire nasal → reflet de Purkinje
+            </li>
+            <li>
+              <span className="font-medium text-foreground">taille_iris_nasal</span>{" "}
+              — limbe nasal → bord pupillaire nasal
+            </li>
+          </ul>
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+            Les distances sont projetées sur l’axe nasal–temporal du limbe, pour
+            coller au script KappaView tout en restant robustes si les points ne
+            sont pas parfaitement alignés.
           </p>
         </div>
       </div>

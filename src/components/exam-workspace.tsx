@@ -37,7 +37,6 @@ import {
   type EyeSide,
   type FormulaParams,
   type LandmarkId,
-  computeAngleLambda,
   eyeLabel,
   formatDeg,
   formatMm,
@@ -45,7 +44,7 @@ import {
   measureEye,
   nextLandmark,
 } from "@/lib/lambda";
-import { DEMO_DISPLACEMENT_MM, createSyntheticEye } from "@/lib/synthetic-eye";
+import { createSyntheticEye } from "@/lib/synthetic-eye";
 import { cn } from "@/lib/utils";
 
 type EyeDraft = {
@@ -53,6 +52,7 @@ type EyeDraft = {
   fileName: string | null;
   landmarks: EyeLandmarks;
   isDemo: boolean;
+  demoTruth: EyeLandmarks | null;
 };
 
 const emptyEye = (): EyeDraft => ({
@@ -60,6 +60,7 @@ const emptyEye = (): EyeDraft => ({
   fileName: null,
   landmarks: {},
   isDemo: false,
+  demoTruth: null,
 });
 
 export function ExamWorkspace() {
@@ -88,6 +89,7 @@ export function ExamWorkspace() {
         fileName: file.name,
         landmarks: {},
         isDemo: false,
+        demoTruth: null,
       };
     });
     setActiveEye(eye);
@@ -104,6 +106,7 @@ export function ExamWorkspace() {
         fileName: `exemple-${eye.toLowerCase()}.png`,
         landmarks: {},
         isDemo: true,
+        demoTruth: synthetic.landmarks,
       };
     });
     setActiveEye(eye);
@@ -162,10 +165,9 @@ export function ExamWorkspace() {
 
       <Alert>
         <AlertCircle />
-        <AlertTitle>Formule {FORMULA.version}</AlertTitle>
+        <AlertTitle>{FORMULA.title}</AlertTitle>
         <AlertDescription>
-          {FORMULA.expression}. {FORMULA.notes} Vous pourrez la remplacer d’un
-          seul module dès qu’elle sera transmise.
+          {FORMULA.expression}. {FORMULA.notes}
         </AlertDescription>
       </Alert>
 
@@ -250,23 +252,12 @@ export function ExamWorkspace() {
                     onLandmarksChange={handleLandmarksChange}
                     onActiveLandmarkChange={setActiveLandmark}
                   />
-                  {(eye === "OD" ? od : os).isDemo && (
-                    <p className="text-xs text-muted-foreground">
-                      Exemple pédagogique : si le marquage est exact, λ attendu ≈{" "}
-                      {formatDeg(
-                        computeAngleLambda({
-                          eye,
-                          displacementNasalMm: DEMO_DISPLACEMENT_MM,
-                          displacementVerticalMm: 0,
-                          radialMm: DEMO_DISPLACEMENT_MM,
-                          pupilDiameterMm: 4,
-                          cornealRadiusMm: params.cornealRadiusMm,
-                          hvidMm: params.hvidMm,
-                        }).degrees,
-                        true,
-                      )}{" "}
-                      nasal (δ = {DEMO_DISPLACEMENT_MM.toLocaleString("fr-FR")} mm).
-                    </p>
+                  {(eye === "OD" ? od : os).demoTruth && (
+                    <DemoHint
+                      eye={eye}
+                      params={params}
+                      truth={(eye === "OD" ? od : os).demoTruth!}
+                    />
                   )}
                   </div>
                 </TabsContent>
@@ -285,6 +276,27 @@ export function ExamWorkspace() {
         </div>
       </div>
     </section>
+  );
+}
+
+function DemoHint({
+  eye,
+  params,
+  truth,
+}: {
+  eye: EyeSide;
+  params: FormulaParams;
+  truth: EyeLandmarks;
+}) {
+  const expected = measureEye(eye, truth, params);
+  if (expected.status !== "ok") return null;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Exemple pédagogique : si le marquage est exact, λ attendu ≈{" "}
+      {formatDeg(expected.angleLambdaDeg, true)} ({lateralityLabel(expected.laterality)}
+      ), Ø pupillaire {formatMm(expected.pupilDiameterMm)}, correctopie{" "}
+      {formatMm(expected.correctopieMm)}.
+    </p>
   );
 }
 
@@ -490,25 +502,33 @@ function EyeResult({
       </p>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <div>
-          <dt>δ nasal</dt>
-          <dd className="text-foreground tabular-nums">
-            {formatMm(measurement.displacementNasalMm)}
-          </dd>
-        </div>
-        <div>
           <dt>Diamètre pupillaire</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.pupilDiameterMm)}
           </dd>
         </div>
         <div>
-          <dt>Équivalent prismatique</dt>
+          <dt>Correctopie</dt>
           <dd className="text-foreground tabular-nums">
-            {measurement.prismDiopters.toLocaleString("fr-FR", {
-              maximumFractionDigits: 1,
-              minimumFractionDigits: 1,
-            })}{" "}
-            Δ
+            {formatMm(measurement.correctopieMm)}{" "}
+            <span className="text-muted-foreground">
+              ({lateralityLabel(measurement.correctopieLaterality)})
+            </span>
+          </dd>
+        </div>
+        <div>
+          <dt>Ratio λ (NPPI / Øp px)</dt>
+          <dd className="text-foreground tabular-nums">
+            {measurement.ratioLambda.toLocaleString("fr-FR", {
+              minimumFractionDigits: 3,
+              maximumFractionDigits: 3,
+            })}
+          </dd>
+        </div>
+        <div>
+          <dt>Décalage Purkinje</dt>
+          <dd className="text-foreground tabular-nums">
+            {formatMm(measurement.reflexOffsetMm)}
           </dd>
         </div>
       </dl>
@@ -531,52 +551,51 @@ function ParamsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Échelle</CardTitle>
+        <CardTitle>Paramètres biométriques</CardTitle>
         <CardDescription>
-          Le diamètre irien calibré la photo. Le rayon cornéen entre dans la
-          formule provisoire.
+          Diamètre cornéen (WtW) et profondeur de chambre antérieure (DAC),
+          comme dans KappaView.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="grid gap-1.5">
-          <Label htmlFor="hvid">HVID — diamètre irien horizontal (mm)</Label>
+          <Label htmlFor="wtw">WtW — diamètre cornéen (mm)</Label>
           <Input
-            id="hvid"
+            id="wtw"
             type="number"
             inputMode="decimal"
-            min={10}
+            min={9}
             max={14}
-            step={0.1}
-            value={params.hvidMm}
+            step={0.01}
+            value={params.wtwMm}
             onChange={(event) =>
               onChange({
                 ...params,
-                hvidMm: Number(event.target.value),
+                wtwMm: Number(event.target.value),
               })
             }
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="radius">R — rayon de courbure cornéen (mm)</Label>
+          <Label htmlFor="dac">DAC — profondeur de chambre antérieure (mm)</Label>
           <Input
-            id="radius"
+            id="dac"
             type="number"
             inputMode="decimal"
-            min={6}
-            max={9.5}
+            min={1.5}
+            max={5.5}
             step={0.05}
-            value={params.cornealRadiusMm}
+            value={params.dacMm}
             onChange={(event) =>
               onChange({
                 ...params,
-                cornealRadiusMm: Number(event.target.value),
+                dacMm: Number(event.target.value),
               })
             }
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Valeurs par défaut : HVID 11,7 mm, R 7,80 mm. Adaptez-les si une
-          kératométrie ou une biométrie est disponible.
+          Valeurs par défaut si inconnues : WtW 11,71 mm, DAC 3,4 mm.
         </p>
       </CardContent>
     </Card>
@@ -594,7 +613,7 @@ function buildReport(
     "LambdaCOR — angle lambda photographique",
     date,
     patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
-    `Échelle : HVID ${params.hvidMm.toLocaleString("fr-FR")} mm · R ${params.cornealRadiusMm.toLocaleString("fr-FR")} mm`,
+    `Biométrie : WtW ${params.wtwMm.toLocaleString("fr-FR")} mm · DAC ${params.dacMm.toLocaleString("fr-FR")} mm`,
     `Formule : ${FORMULA.expression} (${FORMULA.version})`,
     "",
     formatEyeLine("OD", od),
@@ -607,7 +626,7 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  return `${eye} : λ = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · δ = ${formatMm(measurement.displacementNasalMm)}`;
+  return `${eye} : λ = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · Ø pupille = ${formatMm(measurement.pupilDiameterMm)} · correctopie = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
 }
 
 async function fileToObjectUrl(file: File): Promise<string> {

@@ -51,7 +51,10 @@ export function SiteFooter() {
           photographies restent dans le navigateur et ne sont pas transmises à
           un serveur.
         </p>
-        <p>Formule actuelle provisoire — en attente de la relation clinique définitive.</p>
+        <p>
+          Formule KappaView (Hôpital Necker-Enfants malades). Les photographies
+          restent dans le navigateur.
+        </p>
       </div>
     </footer>
   );

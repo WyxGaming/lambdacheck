@@ -2,7 +2,7 @@ import {
   type EyeLandmarks,
   type EyeSide,
   type FormulaParams,
-  computeAngleLambda,
+  measureEye,
   nasalDirectionX,
 } from "@/lib/lambda";
 
@@ -12,7 +12,6 @@ export type SyntheticEye = {
   dataUrl: string;
   landmarks: EyeLandmarks;
   expectedDegrees: number;
-  displacementNasalMm: number;
 };
 
 export function createSyntheticEye(
@@ -33,7 +32,7 @@ export function createSyntheticEye(
   const hvidPx = 430;
   const irisR = hvidPx / 2;
   const pupilR = irisR * 0.36;
-  const pxPerMm = hvidPx / params.hvidMm;
+  const pxPerMm = hvidPx / params.wtwMm;
   const nasalX = nasalDirectionX(eye);
   const reflexX = cx + nasalX * DEMO_DISPLACEMENT_MM * pxPerMm;
   const reflexY = cy - 2;
@@ -52,21 +51,14 @@ export function createSyntheticEye(
     cornealReflex: { x: reflexX, y: reflexY },
   };
 
-  const expectedDegrees = computeAngleLambda({
-    eye,
-    displacementNasalMm: DEMO_DISPLACEMENT_MM,
-    displacementVerticalMm: -2 / pxPerMm,
-    radialMm: DEMO_DISPLACEMENT_MM,
-    pupilDiameterMm: (pupilR * 2) / pxPerMm,
-    cornealRadiusMm: params.cornealRadiusMm,
-    hvidMm: params.hvidMm,
-  }).degrees;
+  const measured = measureEye(eye, landmarks, params);
+  const expectedDegrees =
+    measured.status === "ok" ? measured.angleLambdaDeg : 0;
 
   return {
     dataUrl: canvas.toDataURL("image/png"),
     landmarks,
     expectedDegrees,
-    displacementNasalMm: DEMO_DISPLACEMENT_MM,
   };
 }
 

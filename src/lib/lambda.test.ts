@@ -3,24 +3,37 @@ import { test } from "node:test";
 
 import {
   DEFAULT_PARAMS,
+  LAMBDA_GAIN,
+  LAMBDA_OFFSET,
+  PUPIL_APPARENT_FACTOR,
   computeAngleLambda,
+  extractKappaViewPixels,
   measureEye,
 } from "./lambda.ts";
 
-test("formule provisoire : arctan(δ / R) en degrés", () => {
-  const result = computeAngleLambda({
-    eye: "OD",
-    displacementNasalMm: 0.45,
-    displacementVerticalMm: 0,
-    radialMm: 0.45,
-    pupilDiameterMm: 4,
-    cornealRadiusMm: 7.8,
-    hvidMm: 11.7,
-  });
-  assert.equal(result.degrees.toFixed(3), ((Math.atan(0.45 / 7.8) * 180) / Math.PI).toFixed(3));
+test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python", () => {
+  const pixels = {
+    corneeNltl: 400,
+    pupilNptp: 150,
+    nppi: 60,
+    irisNasal: 125,
+  };
+  const result = computeAngleLambda(pixels, DEFAULT_PARAMS);
+
+  const ratio = 60 / 150;
+  const diam = ((11.71 * 150) / 400) * PUPIL_APPARENT_FACTOR;
+  const correctopie = (400 / 2 - (150 / 2 + 125)) * (11.71 / 400);
+  const expectedAngle =
+    ((Math.atan((diam / 2 - ratio * diam) / 3.4) * 180) / Math.PI) * LAMBDA_GAIN +
+    LAMBDA_OFFSET;
+
+  assert.equal(result.ratioLambda, ratio);
+  assert.equal(result.pupilDiameterMm.toFixed(6), diam.toFixed(6));
+  assert.equal(result.correctopieMm.toFixed(6), correctopie.toFixed(6));
+  assert.equal(result.angleLambdaDeg.toFixed(6), expectedAngle.toFixed(6));
 });
 
-test("OD : reflet à droite du centre pupillaire = nasal positif", () => {
+test("OD : reflet nasal au centre pupillaire → λ positif", () => {
   const measurement = measureEye(
     "OD",
     {
@@ -38,7 +51,7 @@ test("OD : reflet à droite du centre pupillaire = nasal positif", () => {
   assert.ok(measurement.angleLambdaDeg > 0);
 });
 
-test("OS : reflet à gauche du centre pupillaire = nasal positif", () => {
+test("OS : reflet nasal au centre pupillaire → λ positif", () => {
   const measurement = measureEye(
     "OS",
     {
@@ -56,22 +69,31 @@ test("OS : reflet à gauche du centre pupillaire = nasal positif", () => {
   assert.ok(measurement.angleLambdaDeg > 0);
 });
 
-test("le centre pupillaire est le milieu des bords nasal et temporal", () => {
-  const measurement = measureEye(
-    "OD",
-    {
-      limbusTemporal: { x: 0, y: 100 },
-      limbusNasal: { x: 117, y: 100 },
-      pupilTemporal: { x: 40, y: 90 },
-      pupilNasal: { x: 80, y: 110 },
-      cornealReflex: { x: 60, y: 100 },
-    },
-    { hvidMm: 11.7, cornealRadiusMm: 7.8 },
-  );
+test("Purkinje au centre géométrique : ratio λ = 0,5 et correctopie nulle si pupille centrée", () => {
+  const landmarks = {
+    limbusNasal: { x: 0, y: 100 },
+    limbusTemporal: { x: 400, y: 100 },
+    pupilNasal: { x: 125, y: 100 },
+    pupilTemporal: { x: 275, y: 100 },
+    cornealReflex: { x: 200, y: 100 },
+  };
+  const pixels = extractKappaViewPixels(landmarks);
+  assert.ok(pixels);
+  assert.equal(pixels!.corneeNltl, 400);
+  assert.equal(pixels!.pupilNptp, 150);
+  assert.equal(pixels!.nppi, 75);
+  assert.equal(pixels!.irisNasal, 125);
+
+  const measurement = measureEye("OD", landmarks, DEFAULT_PARAMS);
   assert.equal(measurement.status, "ok");
   if (measurement.status !== "ok") return;
-  assert.equal(measurement.displacementNasalMm.toFixed(3), "0.000");
-  assert.equal(measurement.pupilDiameterMm.toFixed(2), "4.47");
+  assert.equal(measurement.ratioLambda, 0.5);
+  assert.equal(measurement.correctopieMm.toFixed(4), "0.0000");
+  assert.equal(measurement.laterality, "centred");
+  assert.equal(
+    measurement.angleLambdaDeg.toFixed(4),
+    LAMBDA_OFFSET.toFixed(4),
+  );
 });
 
 test("mesure incomplète tant que le reflet manque", () => {

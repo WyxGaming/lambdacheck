@@ -2,7 +2,7 @@
 
 Outil web pour **orthoptistes** et **ophtalmologistes** : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 
-Les photos restent dans le navigateur. Rien n’est envoyé à un serveur.
+Formule **KappaView** (Hôpital Necker-Enfants malades). Les photos restent dans le navigateur.
 
 ## Démarrage
 
@@ -14,7 +14,7 @@ npm run dev
 Ouvrez [http://127.0.0.1:43127](http://127.0.0.1:43127).
 
 ```bash
-npm test    # vérifie la géométrie et la formule provisoire
+npm test    # vérifie la formule KappaView et la géométrie
 npm run build
 ```
 
@@ -22,23 +22,29 @@ npm run build
 
 1. Photographiez chaque œil en vision monoculaire (œil controlatéral occlus), patient de face, regard sur l’objectif, limbe entier visible, reflet net.
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
-3. Placez cinq curseurs : limbe nasal, limbe temporal, bord pupillaire nasal, bord pupillaire temporal, reflet de Purkinje. Le centre pupillaire est le milieu des deux bords.
-4. Lisez λ (degrés, nasal ou temporal) et copiez le compte-rendu.
+3. Placez cinq curseurs : limbe nasal, limbe temporal, bord pupillaire nasal, bord pupillaire temporal, reflet de Purkinje.
+4. Saisissez le diamètre cornéen (WtW) et la profondeur de chambre antérieure (DAC) s’ils sont connus. Sinon : 11,71 mm et 3,4 mm.
+5. Lisez λ, le diamètre pupillaire et la correctopie, puis copiez le compte-rendu.
 
-L’échelle utilise le diamètre irien horizontal (HVID, 11,7 mm par défaut). Le rayon de courbure cornéen R (7,80 mm par défaut) entre dans la formule actuelle.
-
-## Formule
-
-La relation clinique définitive n’est pas encore branchée. En attendant :
+## Formule (KappaView4)
 
 ```
-λ = arctan(δ / R)
+ratio_λ     = NPPI / pupil_NPTP
+Ø pupille   = (WtW × pupil_NPTP / cornee_NLTL) × 0.86
+correctopie = ((cornee_NLTL/2) − (pupil_NPTP/2 + iris_nasal)) × (WtW / cornee_NLTL)
+λ           = 1.0455 × atan((Øp/2 − ratio_λ × Øp) / DAC) − 0.0329
 ```
 
-- `δ` : déplacement horizontal du reflet par rapport au centre pupillaire (milieu des bords pupillaires), en mm, **positif vers le nasal**
-- `R` : rayon de courbure cornéen antérieur, en mm
+(`atan` en degrés.)
 
-Pour la remplacer, modifier uniquement `computeAngleLambda` dans `src/lib/lambda.ts`. Les grandeurs déjà mesurées (δ nasal, composante verticale, déplacement radial, diamètre pupillaire, R, HVID, côté OD/OS) sont passées en entrée.
+| Grandeur photo | Curseurs |
+| --- | --- |
+| `cornee_NLTL` | limbe nasal → limbe temporal |
+| `pupil_NPTP` | bord pupillaire nasal → bord pupillaire temporal |
+| `NPPI` | bord pupillaire nasal → reflet de Purkinje |
+| `iris_nasal` | limbe nasal → bord pupillaire nasal |
+
+Implémentation : `src/lib/lambda.ts` (`computeAngleLambda`).
 
 Convention d’image : patient de face, photo non retournée. Nasal à droite pour l’OD, à gauche pour l’OS.
 

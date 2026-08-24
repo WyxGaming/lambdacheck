@@ -12,16 +12,23 @@ export type Point = { x: number; y: number };
 export type EyeLandmarks = Partial<Record<LandmarkId, Point>>;
 
 export type FormulaParams = {
-  /** Diamètre irien horizontal visible (HVID) servant d’échelle, en mm. */
-  hvidMm: number;
-  /** Rayon de courbure cornéen antérieur, en mm. */
-  cornealRadiusMm: number;
+  /** Diamètre cornéen blanc à blanc (WtW), en mm. */
+  wtwMm: number;
+  /** Profondeur de la chambre antérieure (DAC), en mm. */
+  dacMm: number;
 };
 
 export const DEFAULT_PARAMS: FormulaParams = {
-  hvidMm: 11.7,
-  cornealRadiusMm: 7.8,
+  wtwMm: 11.71,
+  dacMm: 3.4,
 };
+
+/** Facteur d’apparence pupillaire de KappaView. */
+export const PUPIL_APPARENT_FACTOR = 0.86;
+/** Gain empirique appliqué à arctan(…) en degrés. */
+export const LAMBDA_GAIN = 1.0455;
+/** Constante empirique, en degrés. */
+export const LAMBDA_OFFSET = -0.0329;
 
 export const LANDMARK_ORDER: LandmarkId[] = [
   "limbusNasal",
@@ -69,56 +76,65 @@ export const LANDMARK_META: Record<
   },
 };
 
-/**
- * Métadonnées de la formule active.
- * Remplacer `computeAngleLambda` et ce bloc lorsque la formule clinique sera fournie.
- */
 export const FORMULA = {
-  id: "provisional-atan-delta-over-R",
-  version: "0.1-provisoire",
-  title: "Formule provisoire",
-  expression: "λ = arctan(δ / R)",
-  status: "provisional" as const,
+  id: "kappaview4-necker",
+  version: "KappaView4",
+  title: "KappaView — Necker-Enfants malades",
+  expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
+  status: "kappaview" as const,
   notes:
-    "δ est le déplacement horizontal du 1er reflet de Purkinje par rapport au centre pupillaire (mm), positif vers le nasal. Le centre pupillaire est le milieu des bords nasal et temporal. R est le rayon de courbure cornéen antérieur (mm). Cette expression est un substitut photographique classique (type Hirschberg / Brodie) en attendant la formule validée.",
+    "Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T, avec NPPI la distance du bord pupillaire nasal au reflet de Purkinje. DAC : profondeur de chambre antérieure. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
-export type GeometricInputs = {
-  eye: EyeSide;
-  /** Déplacement horizontal, mm, positif vers le nasal. */
-  displacementNasalMm: number;
-  /** Déplacement vertical, mm, positif vers le bas de l’image. */
-  displacementVerticalMm: number;
-  radialMm: number;
+export type KappaViewPixels = {
+  /** Cornée limbe nasal → limbe temporal, px. */
+  corneeNltl: number;
+  /** Pupille bord nasal → bord temporal, px. */
+  pupilNptp: number;
+  /** Bord pupillaire nasal → reflet de Purkinje, px. */
+  nppi: number;
+  /** Largeur d’iris nasal (limbe nasal → bord pupillaire nasal), px. */
+  irisNasal: number;
+};
+
+export type KappaViewResult = {
+  angleLambdaDeg: number;
   pupilDiameterMm: number;
-  cornealRadiusMm: number;
-  hvidMm: number;
-};
-
-export type LambdaComputation = {
-  degrees: number;
-  details: {
-    deltaMm: number;
-    cornealRadiusMm: number;
-  };
+  correctopieMm: number;
+  ratioLambda: number;
+  reflexOffsetMm: number;
 };
 
 /**
- * Point unique à remplacer lorsque la formule définitive sera fournie.
+ * Formule KappaView4 (Necker-Enfants malades).
  *
- * Entrées disponibles : déplacement nasal (mm), composante verticale (mm),
- * déplacement radial (mm), rayon cornéen R (mm), HVID (mm), côté (OD/OS).
+ * ratio_lambda = NPPI / pupil_NPTP
+ * diam_pupil   = (WtW * pupil_NPTP / cornee_NLTL) * 0.86
+ * correctopie  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
+ * angle_lambda = degrees(atan(((diam_pupil/2) - ratio_lambda * diam_pupil) / DAC)) * 1.0455 - 0.0329
  */
-export function computeAngleLambda(inputs: GeometricInputs): LambdaComputation {
-  const { displacementNasalMm, cornealRadiusMm } = inputs;
-  const degrees =
-    (Math.atan(displacementNasalMm / cornealRadiusMm) * 180) / Math.PI;
+export function computeAngleLambda(
+  pixels: KappaViewPixels,
+  params: FormulaParams,
+): KappaViewResult {
+  const ratioLambda = pixels.nppi / pixels.pupilNptp;
+  const pupilDiameterMm =
+    ((params.wtwMm * pixels.pupilNptp) / pixels.corneeNltl) *
+    PUPIL_APPARENT_FACTOR;
+  const correctopieMm =
+    (pixels.corneeNltl / 2 - (pixels.pupilNptp / 2 + pixels.irisNasal)) *
+    (params.wtwMm / pixels.corneeNltl);
+  const reflexOffsetMm = pupilDiameterMm / 2 - ratioLambda * pupilDiameterMm;
+  const angleLambdaDeg =
+    ((Math.atan(reflexOffsetMm / params.dacMm) * 180) / Math.PI) * LAMBDA_GAIN +
+    LAMBDA_OFFSET;
+
   return {
-    degrees,
-    details: {
-      deltaMm: displacementNasalMm,
-      cornealRadiusMm,
-    },
+    angleLambdaDeg,
+    pupilDiameterMm,
+    correctopieMm,
+    ratioLambda,
+    reflexOffsetMm,
   };
 }
 
@@ -130,11 +146,12 @@ export type EyeMeasurement =
       status: "ok";
       eye: EyeSide;
       pxPerMm: number;
-      displacementNasalMm: number;
-      displacementVerticalMm: number;
-      radialMm: number;
       pupilDiameterMm: number;
+      correctopieMm: number;
+      ratioLambda: number;
+      reflexOffsetMm: number;
       laterality: "nasal" | "temporal" | "centred";
+      correctopieLaterality: "nasal" | "temporal" | "centred";
       angleLambdaDeg: number;
       angleLambdaAbsDeg: number;
       prismDiopters: number;
@@ -162,12 +179,46 @@ export function missingLandmarks(landmarks: EyeLandmarks): LandmarkId[] {
 }
 
 /**
- * Convention d’image : patient de face, photo non mirroir.
+ * Convention d’image : patient de face, photo non miroir.
  * OD : le nasal est à droite de l’image (+x).
  * OS : le nasal est à gauche de l’image (−x).
  */
 export function nasalDirectionX(eye: EyeSide): 1 | -1 {
   return eye === "OD" ? 1 : -1;
+}
+
+/** Projection signée de origin→point sur l’axe axisFrom→axisTo. */
+export function projectedAlong(
+  origin: Point,
+  point: Point,
+  axisFrom: Point,
+  axisTo: Point,
+): number {
+  const axisX = axisTo.x - axisFrom.x;
+  const axisY = axisTo.y - axisFrom.y;
+  const length = Math.hypot(axisX, axisY);
+  if (length < 1e-9) return 0;
+  return (
+    ((point.x - origin.x) * axisX + (point.y - origin.y) * axisY) / length
+  );
+}
+
+export function extractKappaViewPixels(landmarks: EyeLandmarks): KappaViewPixels | null {
+  const limbusNasal = landmarks.limbusNasal;
+  const limbusTemporal = landmarks.limbusTemporal;
+  const pupilNasal = landmarks.pupilNasal;
+  const pupilTemporal = landmarks.pupilTemporal;
+  const reflex = landmarks.cornealReflex;
+  if (!limbusNasal || !limbusTemporal || !pupilNasal || !pupilTemporal || !reflex) {
+    return null;
+  }
+
+  return {
+    corneeNltl: distance(limbusNasal, limbusTemporal),
+    pupilNptp: projectedAlong(pupilNasal, pupilTemporal, limbusNasal, limbusTemporal),
+    nppi: projectedAlong(pupilNasal, reflex, limbusNasal, limbusTemporal),
+    irisNasal: projectedAlong(limbusNasal, pupilNasal, limbusNasal, limbusTemporal),
+  };
 }
 
 export function measureEye(
@@ -184,19 +235,16 @@ export function measureEye(
     return { status: "incomplete", missing };
   }
 
-  const temporal = landmarks.limbusTemporal!;
-  const nasal = landmarks.limbusNasal!;
-  const pupilNasal = landmarks.pupilNasal!;
-  const pupilTemporal = landmarks.pupilTemporal!;
-  const reflex = landmarks.cornealReflex!;
-  const pupil = midpoint(pupilNasal, pupilTemporal);
-
-  if (params.hvidMm <= 0 || params.cornealRadiusMm <= 0) {
+  if (params.wtwMm <= 0 || params.dacMm <= 0) {
     return { status: "invalid", reason: "Paramètres d’échelle invalides." };
   }
 
-  const limbusPx = distance(temporal, nasal);
-  if (limbusPx < 8) {
+  const pixels = extractKappaViewPixels(landmarks);
+  if (!pixels) {
+    return { status: "incomplete", missing: missingLandmarks(landmarks) };
+  }
+
+  if (pixels.corneeNltl < 8) {
     return {
       status: "invalid",
       reason:
@@ -204,71 +252,62 @@ export function measureEye(
     };
   }
 
-  const pupilPx = distance(pupilNasal, pupilTemporal);
-  if (pupilPx < 4) {
+  if (pixels.pupilNptp < 4) {
     return {
       status: "invalid",
       reason:
-        "Les bords pupillaires sont trop proches. Placez le bord nasal et le bord temporal aux marges opposées de la pupille.",
+        "Les bords pupillaires sont trop proches, ou nasal et temporal sont inversés. Vérifiez PN et PT.",
     };
   }
 
-  const pxPerMm = limbusPx / params.hvidMm;
-  const pupilDiameterMm = pupilPx / pxPerMm;
-  const dxPx = reflex.x - pupil.x;
-  const dyPx = reflex.y - pupil.y;
-  const displacementNasalMm = (dxPx / pxPerMm) * nasalDirectionX(eye);
-  const displacementVerticalMm = dyPx / pxPerMm;
-  const radialMm = Math.hypot(displacementNasalMm, displacementVerticalMm);
+  const computation = computeAngleLambda(pixels, params);
+  const pxPerMm = pixels.corneeNltl / params.wtwMm;
 
   const centredThresholdMm = 0.04;
   const laterality =
-    Math.abs(displacementNasalMm) < centredThresholdMm
+    Math.abs(computation.reflexOffsetMm) < centredThresholdMm
       ? "centred"
-      : displacementNasalMm > 0
+      : computation.reflexOffsetMm > 0
+        ? "nasal"
+        : "temporal";
+  const correctopieLaterality =
+    Math.abs(computation.correctopieMm) < centredThresholdMm
+      ? "centred"
+      : computation.correctopieMm > 0
         ? "nasal"
         : "temporal";
 
-  const computation = computeAngleLambda({
-    eye,
-    displacementNasalMm,
-    displacementVerticalMm,
-    radialMm,
-    pupilDiameterMm,
-    cornealRadiusMm: params.cornealRadiusMm,
-    hvidMm: params.hvidMm,
-  });
-
   const warnings: string[] = [];
-  if (pupilDiameterMm >= params.hvidMm) {
+  if (pixels.irisNasal < 0) {
     warnings.push(
-      "Le diamètre pupillaire dépasse le HVID : vérifiez les bords pupillaires et limbiques.",
+      "L’iris nasal est négatif : le bord pupillaire nasal n’est pas entre les limbes, côté nez.",
     );
   }
-  if (Math.abs(displacementVerticalMm) > 0.35) {
+  if (computation.ratioLambda < 0 || computation.ratioLambda > 1) {
     warnings.push(
-      "Décalage vertical marqué du reflet : vérifiez que le patient fixe bien la source lumineuse.",
+      "Le reflet de Purkinje est en dehors de la pupille. Vérifiez PN, PT et P1.",
     );
   }
-  if (radialMm > 2.5) {
+  if (computation.pupilDiameterMm >= params.wtwMm) {
     warnings.push(
-      "Déplacement du reflet inhabituellement grand. Contrôlez le marquage et l’occlusion monoculaire.",
+      "Le diamètre pupillaire dépasse le diamètre cornéen : vérifiez les curseurs.",
     );
   }
 
-  const rad = (computation.degrees * Math.PI) / 180;
+  const rad = (computation.angleLambdaDeg * Math.PI) / 180;
 
   return {
     status: "ok",
     eye,
     pxPerMm,
-    displacementNasalMm,
-    displacementVerticalMm,
-    radialMm,
-    pupilDiameterMm,
+    pupilDiameterMm: computation.pupilDiameterMm,
+    correctopieMm: computation.correctopieMm,
+    ratioLambda: computation.ratioLambda,
+    reflexOffsetMm: computation.reflexOffsetMm,
     laterality,
-    angleLambdaDeg: computation.degrees,
-    angleLambdaAbsDeg: Math.abs(computation.degrees),
+    correctopieLaterality,
+    angleLambdaDeg: computation.angleLambdaDeg,
+    angleLambdaAbsDeg: Math.abs(computation.angleLambdaDeg),
     prismDiopters: 100 * Math.tan(rad),
     formulaId: FORMULA.id,
     formulaExpression: FORMULA.expression,
