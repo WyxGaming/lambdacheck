@@ -130,8 +130,11 @@ export function PhotoAnnotator({
     const img = new Image();
     const markReady = () => {
       if (cancelled) return;
-      if (img.naturalWidth < 1) return;
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      if (width < 1 || height < 1) return;
       imageRef.current = img;
+      setFailedUrl((current) => (current === imageUrl ? null : current));
       setLoadedUrl(imageUrl);
       setImageVersion((version) => version + 1);
     };

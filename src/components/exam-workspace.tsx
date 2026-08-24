@@ -111,7 +111,7 @@ export function ExamWorkspace() {
         }
         return {
           imageUrl: synthetic.imageUrl,
-          fileName: `exemple-${eye.toLowerCase()}.svg`,
+          fileName: `exemple-${eye.toLowerCase()}.png`,
           landmarks: {},
           isDemo: true,
           demoTruth: synthetic.landmarks,
@@ -364,11 +364,11 @@ function EyeToolbar({
         <Sparkles />
         Exemple pédagogique
       </button>
-      <Button variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
+      <Button type="button" variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
         <Eraser />
         Effacer les points
       </Button>
-      <Button variant="ghost" onClick={onResetEye} disabled={!draft.imageUrl}>
+      <Button type="button" variant="ghost" onClick={onResetEye} disabled={!draft.imageUrl}>
         <RotateCcw />
         Retirer la photo
       </Button>
