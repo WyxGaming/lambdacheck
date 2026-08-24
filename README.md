@@ -6,7 +6,9 @@ Aucun compte, aucun serveur de données. Les photos restent dans le navigateur.
 
 ## Utilisation (cliniciens)
 
-Ouvrez le site dans un navigateur (ordinateur ou tablette). Importez OD puis OS, posez les cinq curseurs, lisez λ.
+Site en ligne : [https://lambdacheck1.vercel.app](https://lambdacheck1.vercel.app/)
+
+Ouvrez-le dans un navigateur (ordinateur ou tablette). Importez OD puis OS, posez les cinq curseurs, lisez λ.
 
 Sur tablette, le site peut être ajouté à l’écran d’accueil (application autonome).
 
