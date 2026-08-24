@@ -11,14 +11,18 @@ import {
   type EyeSide,
   type LandmarkId,
   type Point,
+  applyLandmarkConstraints,
   derivedPupilCenter,
   displayedPoint,
   distance,
+  distanceToEllipse,
   ghostHandles,
   limbusEllipse,
+  limbusEllipseHandles,
   nasalDirectionX,
+  nearestEllipseHandle,
   nextLandmark,
-  applyLandmarkConstraints,
+  translateCornea,
 } from "@/lib/lambda";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +48,9 @@ type View = {
 };
 
 const HIT_RADIUS_CSS = 14;
+const ELLIPSE_HANDLE_HIT_CSS = 18;
+const ELLIPSE_RIM_HIT_CSS = 12;
+const ELLIPSE_CENTER_HIT_CSS = 14;
 const LOUPE_SIZE = 148;
 const LOUPE_ZOOM = 2.8;
 const MIN_ZOOM = 1;
@@ -64,6 +71,7 @@ export function PhotoAnnotator({
   const landmarksRef = useRef(landmarks);
   const activeRef = useRef(activeLandmark);
   const dragRef = useRef<LandmarkId | null>(null);
+  const corneaDragRef = useRef<Point | null>(null);
   const panDragRef = useRef<{
     x: number;
     y: number;
@@ -188,10 +196,17 @@ export function PhotoAnnotator({
     );
 
     drawGuides(ctx, layout, landmarksRef.current, eye, img.width);
+    drawLimbusHandles(ctx, layout, landmarksRef.current);
     drawLandmarks(ctx, layout, landmarksRef.current, activeRef.current);
 
     const pointer = pointerRef.current;
-    if (pointer && !dragRef.current && !panDragRef.current && !pinchRef.current) {
+    if (
+      pointer &&
+      !dragRef.current &&
+      !corneaDragRef.current &&
+      !panDragRef.current &&
+      !pinchRef.current
+    ) {
       drawLoupe(ctx, img, layout, pointer, cssW);
     }
   }, [eye]);
@@ -249,12 +264,25 @@ export function PhotoAnnotator({
     return cssToImage(eventToCss(event), layout, img);
   };
 
-  const hitTest = (cssPoint: Point): LandmarkId | null => {
+  const eventToImageUnclamped = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ): Point | null => {
+    const layout = currentLayout();
+    if (!layout) return null;
+    return cssToImageUnclamped(eventToCss(event), layout);
+  };
+
+  const hitTest = (
+    cssPoint: Point,
+    placedOnly = false,
+  ): LandmarkId | null => {
     const layout = currentLayout();
     if (!layout) return null;
     let best: { id: LandmarkId; dist: number } | null = null;
     for (const id of LANDMARK_ORDER) {
-      const point = displayedPoint(landmarksRef.current, id);
+      const point = placedOnly
+        ? landmarksRef.current[id]
+        : displayedPoint(landmarksRef.current, id);
       if (!point) continue;
       const screen = imageToCss(point, layout);
       const dist = distance(cssPoint, screen);
@@ -263,6 +291,61 @@ export function PhotoAnnotator({
       }
     }
     return best?.id ?? null;
+  };
+
+  const hitEllipse = (
+    cssPoint: Point,
+    layout: Layout,
+  ):
+    | { kind: "handle" | "rim"; id: LandmarkId }
+    | { kind: "center" }
+    | null => {
+    const ellipse = limbusEllipse(landmarksRef.current);
+    if (!ellipse) return null;
+    const imagePoint = cssToImageUnclamped(cssPoint, layout);
+
+    let bestHandle: { id: LandmarkId; dist: number } | null = null;
+    for (const handle of limbusEllipseHandles(landmarksRef.current)) {
+      const dist = distance(cssPoint, imageToCss(handle.point, layout));
+      if (dist <= ELLIPSE_HANDLE_HIT_CSS && (!bestHandle || dist < bestHandle.dist)) {
+        bestHandle = { id: handle.id, dist };
+      }
+    }
+    if (bestHandle) return { kind: "handle", id: bestHandle.id };
+
+    if (distanceToEllipse(imagePoint, ellipse) * layout.scale <= ELLIPSE_RIM_HIT_CSS) {
+      const id = nearestEllipseHandle(imagePoint, landmarksRef.current);
+      if (id) return { kind: "rim", id };
+    }
+
+    const center = imageToCss({ x: ellipse.cx, y: ellipse.cy }, layout);
+    if (distance(cssPoint, center) <= ELLIPSE_CENTER_HIT_CSS) {
+      return { kind: "center" };
+    }
+    return null;
+  };
+
+  const setCanvasCursor = (cssPoint: Point | null) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!imageUrl) {
+      canvas.style.cursor = "default";
+      return;
+    }
+    if (dragRef.current || corneaDragRef.current || panDragRef.current) {
+      canvas.style.cursor = "grabbing";
+      return;
+    }
+    const layout = currentLayout();
+    if (!cssPoint || !layout) {
+      canvas.style.cursor = "crosshair";
+      return;
+    }
+    const grabbing =
+      Boolean(hitTest(cssPoint, true)) ||
+      Boolean(hitEllipse(cssPoint, layout)) ||
+      Boolean(hitTest(cssPoint, false));
+    canvas.style.cursor = grabbing ? "grab" : "crosshair";
   };
 
   const beginPinch = () => {
@@ -274,6 +357,7 @@ export function PhotoAnnotator({
       view: { ...viewRef.current },
     };
     dragRef.current = null;
+    corneaDragRef.current = null;
     panDragRef.current = null;
   };
 
@@ -298,6 +382,44 @@ export function PhotoAnnotator({
       return;
     }
 
+    const layout = currentLayout();
+    const placedHit = hitTest(css, true);
+    if (placedHit) {
+      dragRef.current = placedHit;
+      onActiveLandmarkChange(placedHit);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setCanvasCursor(css);
+      return;
+    }
+
+    const ellipseHit = layout ? hitEllipse(css, layout) : null;
+    if (ellipseHit) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      if (ellipseHit.kind === "center") {
+        corneaDragRef.current = cssToImageUnclamped(css, layout!);
+        setCanvasCursor(css);
+        return;
+      }
+      const imageAtHandle = cssToImageUnclamped(css, layout!);
+      dragRef.current = ellipseHit.id;
+      onActiveLandmarkChange(ellipseHit.id);
+      if (!landmarksRef.current[ellipseHit.id]) {
+        const handle = limbusEllipseHandles(landmarksRef.current).find(
+          (item) => item.id === ellipseHit.id,
+        );
+        onLandmarksChange(
+          applyLandmarkConstraints(
+            landmarksRef.current,
+            ellipseHit.id,
+            handle?.point ?? imageAtHandle,
+            "place",
+          ),
+        );
+      }
+      setCanvasCursor(css);
+      return;
+    }
+
     const imagePoint = eventToImage(event);
     const hit = hitTest(css);
     const ghosts = ghostHandles(landmarksRef.current);
@@ -311,6 +433,7 @@ export function PhotoAnnotator({
         applyLandmarkConstraints(landmarksRef.current, hit, ghostPoint, "place"),
       );
       event.currentTarget.setPointerCapture(event.pointerId);
+      setCanvasCursor(css);
       return;
     }
 
@@ -324,6 +447,7 @@ export function PhotoAnnotator({
       dragRef.current = hit;
       onActiveLandmarkChange(hit);
       event.currentTarget.setPointerCapture(event.pointerId);
+      setCanvasCursor(css);
       return;
     }
 
@@ -386,6 +510,7 @@ export function PhotoAnnotator({
 
     pointerRef.current = css;
     setCursor(css);
+    setCanvasCursor(css);
 
     const panDrag = panDragRef.current;
     if (panDrag) {
@@ -397,9 +522,24 @@ export function PhotoAnnotator({
       return;
     }
 
+    const corneaOrigin = corneaDragRef.current;
+    if (corneaOrigin) {
+      const imagePoint = eventToImageUnclamped(event);
+      if (!imagePoint) return;
+      onLandmarksChange(
+        translateCornea(
+          landmarksRef.current,
+          imagePoint.x - corneaOrigin.x,
+          imagePoint.y - corneaOrigin.y,
+        ),
+      );
+      corneaDragRef.current = imagePoint;
+      return;
+    }
+
     const dragId = dragRef.current;
     if (!dragId) return;
-    const imagePoint = eventToImage(event);
+    const imagePoint = eventToImageUnclamped(event) ?? eventToImage(event);
     if (!imagePoint) return;
     onLandmarksChange(
       applyLandmarkConstraints(landmarksRef.current, dragId, imagePoint, "drag"),
@@ -410,14 +550,17 @@ export function PhotoAnnotator({
     pointersRef.current.delete(event.pointerId);
     if (pointersRef.current.size < 2) pinchRef.current = null;
     dragRef.current = null;
+    corneaDragRef.current = null;
     panDragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
+    setCanvasCursor(eventToCss(event));
   };
 
   const handlePointerLeave = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (pinchRef.current || dragRef.current || panDragRef.current) return;
+    if (pinchRef.current || dragRef.current || corneaDragRef.current || panDragRef.current)
+      return;
     pointersRef.current.delete(event.pointerId);
     pointerRef.current = null;
     setCursor(null);
@@ -444,6 +587,7 @@ export function PhotoAnnotator({
             "h-full w-full touch-none",
             imageUrl ? "cursor-crosshair" : "cursor-default",
           )}
+          style={imageUrl ? { cursor: "crosshair" } : undefined}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -504,6 +648,16 @@ export function PhotoAnnotator({
               Impossible d’afficher cette image. Réessayez avec un JPEG ou un PNG.
             </p>
           </div>
+        )}
+        {imageUrl &&
+          imageStatus === "ready" &&
+          landmarks.limbusNasal &&
+          landmarks.limbusTemporal &&
+          !(landmarks.limbusSuperior && landmarks.limbusInferior) && (
+          <p className="pointer-events-none absolute bottom-2 left-2 right-2 rounded-md bg-black/55 px-2 py-1.5 text-center text-[11px] leading-snug text-white/90 backdrop-blur-sm">
+            Glissez les poignées ou le contour pour coller l’ellipse au limbe.
+            Le centre déplace l’ensemble.
+          </p>
         )}
       </div>
     </div>
@@ -575,15 +729,28 @@ function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
+function cssToImageUnclamped(css: Point, layout: Layout): Point {
+  return {
+    x: (css.x - layout.ox) / layout.scale,
+    y: (css.y - layout.oy) / layout.scale,
+  };
+}
+
 function cssToImage(
   css: Point,
   layout: Layout,
   img: HTMLImageElement,
 ): Point | null {
-  const x = (css.x - layout.ox) / layout.scale;
-  const y = (css.y - layout.oy) / layout.scale;
-  if (x < 0 || y < 0 || x > img.width || y > img.height) return null;
-  return { x, y };
+  const point = cssToImageUnclamped(css, layout);
+  if (
+    point.x < 0 ||
+    point.y < 0 ||
+    point.x > img.width ||
+    point.y > img.height
+  ) {
+    return null;
+  }
+  return point;
 }
 
 function imageToCss(point: Point, layout: Layout): Point {
@@ -634,9 +801,9 @@ function drawGuides(
       0,
       Math.PI * 2,
     );
-    ctx.strokeStyle = "rgba(148, 163, 184, 0.75)";
-    ctx.setLineDash(landmarks.limbusSuperior && landmarks.limbusInferior ? [] : [6, 5]);
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.setLineDash(landmarks.limbusSuperior && landmarks.limbusInferior ? [] : [7, 5]);
+    ctx.lineWidth = 2.25;
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -733,6 +900,59 @@ function drawGuides(
   }
 }
 
+function drawLimbusHandles(
+  ctx: CanvasRenderingContext2D,
+  layout: Layout,
+  landmarks: EyeLandmarks,
+) {
+  const ellipse = limbusEllipse(landmarks);
+  if (!ellipse) return;
+
+  for (const handle of limbusEllipseHandles(landmarks)) {
+    const screen = imageToCss(handle.point, layout);
+    const meta = LANDMARK_META[handle.id];
+    const size = landmarks[handle.id] ? 18 : 14;
+    const x = Math.round(screen.x - size / 2);
+    const y = Math.round(screen.y - size / 2);
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fillRect(x + 1, y + 1, size, size);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x, y, size, size);
+    ctx.strokeStyle = meta.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+
+    if (!landmarks[handle.id]) {
+      ctx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillText(meta.short, screen.x + 11, screen.y - 10);
+      ctx.fillStyle = "#fff";
+      ctx.fillText(meta.short, screen.x + 10, screen.y - 11);
+    }
+  }
+
+  const center = imageToCss({ x: ellipse.cx, y: ellipse.cy }, layout);
+  const csize = 11;
+  const cx = Math.round(center.x - csize / 2);
+  const cy = Math.round(center.y - csize / 2);
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.fillRect(cx + 1, cy + 1, csize, csize);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(cx, cy, csize, csize);
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx + 0.5, cy + 0.5, csize - 1, csize - 1);
+  ctx.beginPath();
+  ctx.moveTo(center.x - 5, center.y);
+  ctx.lineTo(center.x + 5, center.y);
+  ctx.moveTo(center.x, center.y - 5);
+  ctx.lineTo(center.x, center.y + 5);
+  ctx.strokeStyle = "#0f766e";
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+}
+
 function drawLandmarks(
   ctx: CanvasRenderingContext2D,
   layout: Layout,
@@ -741,6 +961,10 @@ function drawLandmarks(
 ) {
   const ghosts = ghostHandles(landmarks);
   for (const id of LANDMARK_ORDER) {
+    const isLimbusGhost =
+      !landmarks[id] &&
+      (id === "limbusSuperior" || id === "limbusInferior");
+    if (isLimbusGhost) continue;
     const point = landmarks[id] ?? ghosts[id];
     if (!point) continue;
     const screen = imageToCss(point, layout);

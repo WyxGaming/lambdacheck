@@ -9,9 +9,14 @@ import {
   REFERENCE_DAC_MM,
   REFERENCE_WTW_MM,
   computeAngleLambda,
+  distanceToEllipse,
   extractKappaViewPixels,
+  limbusEllipse,
+  limbusEllipseHandles,
   measureEye,
+  nearestEllipseHandle,
   resolveScale,
+  translateCornea,
   withAlignedLimbus,
 } from "./lambda.ts";
 
@@ -202,4 +207,43 @@ test("mesure horizontale possible avant d’avoir fini le vertical", () => {
   if (measurement.status !== "ok") return;
   assert.equal(measurement.laterality, "nasal");
   assert.equal(measurement.vertical, null);
+});
+
+test("poignées cardinales de l’ellipse du limbe", () => {
+  const landmarks = {
+    limbusNasal: { x: 300, y: 200 },
+    limbusTemporal: { x: 100, y: 200 },
+  };
+  const handles = limbusEllipseHandles(landmarks);
+  assert.equal(handles.length, 4);
+  assert.equal(nearestEllipseHandle({ x: 200, y: 80 }, landmarks), "limbusSuperior");
+  assert.equal(nearestEllipseHandle({ x: 200, y: 320 }, landmarks), "limbusInferior");
+  assert.equal(nearestEllipseHandle({ x: 320, y: 200 }, landmarks), "limbusNasal");
+  assert.equal(nearestEllipseHandle({ x: 80, y: 200 }, landmarks), "limbusTemporal");
+  assert.equal(nearestEllipseHandle({ x: 200, y: 200 }, landmarks, 10), null);
+
+  const ellipse = limbusEllipse(landmarks);
+  assert.ok(ellipse);
+  const onRim = { x: ellipse.cx + ellipse.rx, y: ellipse.cy };
+  assert.ok(distanceToEllipse(onRim, ellipse) < 0.5);
+  assert.ok(distanceToEllipse({ x: ellipse.cx, y: ellipse.cy }, ellipse) > 50);
+});
+
+test("déplacer l’ellipse du limbe translate LN, LT, LS et LI", () => {
+  const moved = translateCornea(
+    {
+      limbusNasal: { x: 300, y: 200 },
+      limbusTemporal: { x: 100, y: 200 },
+      limbusSuperior: { x: 200, y: 80 },
+      limbusInferior: { x: 200, y: 320 },
+      pupilNasal: { x: 250, y: 200 },
+    },
+    10,
+    -5,
+  );
+  assert.deepEqual(moved.limbusNasal, { x: 310, y: 195 });
+  assert.deepEqual(moved.limbusTemporal, { x: 110, y: 195 });
+  assert.deepEqual(moved.limbusSuperior, { x: 210, y: 75 });
+  assert.deepEqual(moved.limbusInferior, { x: 210, y: 315 });
+  assert.deepEqual(moved.pupilNasal, { x: 250, y: 200 });
 });

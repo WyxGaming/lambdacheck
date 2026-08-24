@@ -298,6 +298,90 @@ export function limbusEllipse(landmarks: EyeLandmarks): LimbusEllipse | null {
   return { cx, cy, rx, ry };
 }
 
+export type EllipseHandleId =
+  | "limbusNasal"
+  | "limbusTemporal"
+  | "limbusSuperior"
+  | "limbusInferior"
+  | "center";
+
+export function limbusEllipseHandles(
+  landmarks: EyeLandmarks,
+): { id: Exclude<EllipseHandleId, "center">; point: Point }[] {
+  const ellipse = limbusEllipse(landmarks);
+  const nasal = landmarks.limbusNasal;
+  const temporal = landmarks.limbusTemporal;
+  if (!ellipse || !nasal || !temporal) return [];
+  const leftId = nasal.x <= temporal.x ? "limbusNasal" : "limbusTemporal";
+  const rightId = leftId === "limbusNasal" ? "limbusTemporal" : "limbusNasal";
+  return [
+    { id: leftId, point: { x: ellipse.cx - ellipse.rx, y: ellipse.cy } },
+    { id: rightId, point: { x: ellipse.cx + ellipse.rx, y: ellipse.cy } },
+    {
+      id: "limbusSuperior",
+      point: { x: ellipse.cx, y: ellipse.cy - ellipse.ry },
+    },
+    {
+      id: "limbusInferior",
+      point: { x: ellipse.cx, y: ellipse.cy + ellipse.ry },
+    },
+  ];
+}
+
+export function nearestEllipseHandle(
+  point: Point,
+  landmarks: EyeLandmarks,
+  maxDistance = Number.POSITIVE_INFINITY,
+): Exclude<EllipseHandleId, "center"> | null {
+  const handles = limbusEllipseHandles(landmarks);
+  if (handles.length === 0) return null;
+  let best = handles[0];
+  let bestDist = distance(point, best.point);
+  for (const handle of handles.slice(1)) {
+    const dist = distance(point, handle.point);
+    if (dist < bestDist) {
+      best = handle;
+      bestDist = dist;
+    }
+  }
+  return bestDist <= maxDistance ? best.id : null;
+}
+
+export function distanceToEllipse(
+  point: Point,
+  ellipse: LimbusEllipse,
+): number {
+  if (ellipse.rx < 1 || ellipse.ry < 1) return Number.POSITIVE_INFINITY;
+  const nx = (point.x - ellipse.cx) / ellipse.rx;
+  const ny = (point.y - ellipse.cy) / ellipse.ry;
+  const r = Math.hypot(nx, ny);
+  if (r < 1e-6) return Math.min(ellipse.rx, ellipse.ry);
+  const theta = Math.atan2(ny, nx);
+  const ex = ellipse.cx + ellipse.rx * Math.cos(theta);
+  const ey = ellipse.cy + ellipse.ry * Math.sin(theta);
+  return distance(point, { x: ex, y: ey });
+}
+
+export function translateCornea(
+  landmarks: EyeLandmarks,
+  dx: number,
+  dy: number,
+): EyeLandmarks {
+  const ids: LandmarkId[] = [
+    "limbusNasal",
+    "limbusTemporal",
+    "limbusSuperior",
+    "limbusInferior",
+  ];
+  const next: EyeLandmarks = { ...landmarks };
+  for (const id of ids) {
+    const point = next[id];
+    if (!point) continue;
+    next[id] = { x: point.x + dx, y: point.y + dy };
+  }
+  return next;
+}
+
 export function ghostHandles(
   landmarks: EyeLandmarks,
 ): Partial<Record<LandmarkId, Point>> {

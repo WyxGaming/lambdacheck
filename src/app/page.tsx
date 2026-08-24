@@ -48,9 +48,10 @@ function Intro() {
             Le premier reflet de Purkinje doit être franc, sur la cornée.
           </li>
           <li>
-            Marquez limbe nasal et temporal, étirez l’ellipse haut/bas,
-            posez les bords pupillaires (N, T, S, I) puis le reflet. WtW et
-            DAC si connus, sinon 11,71 mm et 3,4 mm.
+            Marquez limbe nasal et temporal, collez l’ellipse au limbe
+            (poignées, contour ou centre), posez les bords pupillaires
+            (N, T, S, I) puis le reflet. WtW et DAC si connus, sinon
+            11,71 mm et 3,4 mm.
           </li>
         </ol>
       </details>

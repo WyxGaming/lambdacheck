@@ -41,7 +41,7 @@ npm test    # vérifie le calcul et la géométrie
 
 1. Photographiez chaque œil en vision monoculaire (œil controlatéral occlus), patient de face, regard sur l’objectif, limbe entier visible, reflet net.
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
-3. Placez limbe nasal et temporal, puis étirez l’ellipse haut/bas (limbe supérieur et inférieur). Posez les bords pupillaires nasal, temporal, supérieur, inférieur, puis le reflet de Purkinje.
+3. Placez limbe nasal et temporal. Collez l’ellipse au limbe en glissant les poignées, le contour ou le centre. Posez ensuite les bords pupillaires nasal, temporal, supérieur, inférieur, puis le reflet de Purkinje.
 4. Indiquez le WtW et la DAC s’ils sont connus ; sinon 11,71 mm et 3,4 mm. Sur la photo, le WtW correspond à limbe nasal → limbe temporal.
 5. Lisez λ horizontal et λ vertical, les diamètres pupillaires et les correctopies, puis copiez le compte-rendu.
 

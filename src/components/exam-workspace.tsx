@@ -162,8 +162,8 @@ export function ExamWorkspace() {
             Nouvelle mesure
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Importez ou déposez une photo par œil. Posez d’abord l’axe
-            horizontal, puis étirez l’ellipse du limbe (haut/bas) pour λ
+            Importez ou déposez une photo par œil. Posez LN et LT, puis
+            collez l’ellipse au limbe (poignées, contour ou centre) pour λ
             vertical.
           </p>
         </div>
@@ -182,9 +182,10 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
-                Cliquez pour poser le curseur actif. Après LN et LT, glissez
-                le haut ou le bas de l’ellipse pour l’ajuster au limbe. Les
-                deux λ (horizontal et vertical) se calculent ensuite.
+                Cliquez pour poser le curseur actif. Après LN et LT, des
+                poignées apparaissent sur l’ellipse : glissez-les, le contour
+                ou le centre pour coller le limbe. Les deux λ se calculent
+                ensuite.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -547,7 +548,7 @@ function EyeResult({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ajustez le haut et le bas de l’ellipse, puis PS et PI.
+            Ajustez l’ellipse au limbe, puis PS et PI.
           </p>
         )}
       </div>
