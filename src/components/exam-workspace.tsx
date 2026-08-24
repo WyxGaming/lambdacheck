@@ -100,27 +100,18 @@ export function ExamWorkspace() {
     setActiveLandmark(FIRST_LANDMARK);
   };
 
-  const loadDemo = async (eye: EyeSide) => {
+  const loadDemo = (eye: EyeSide) => {
     setDemoError(null);
     try {
       const synthetic = createSyntheticEye(eye, params);
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        synthetic.canvas.toBlob(
-          (result) => {
-            if (result) resolve(result);
-            else reject(new Error("Export de l’exemple impossible."));
-          },
-          "image/jpeg",
-          0.92,
-        );
-      });
-      const url = URL.createObjectURL(blob);
       const setter = eye === "OD" ? setOd : setOs;
       setter((prev) => {
-        if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
+        if (prev.imageUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(prev.imageUrl);
+        }
         return {
-          imageUrl: url,
-          fileName: `exemple-${eye.toLowerCase()}.jpg`,
+          imageUrl: synthetic.imageUrl,
+          fileName: `exemple-${eye.toLowerCase()}.svg`,
           landmarks: {},
           isDemo: true,
           demoTruth: synthetic.landmarks,
@@ -259,9 +250,7 @@ export function ExamWorkspace() {
                     eye={eye}
                     draft={eye === "OD" ? od : os}
                     onFiles={(files) => handleFiles(files, eye)}
-                    onDemo={() => {
-                      void loadDemo(eye);
-                    }}
+                    onDemo={() => loadDemo(eye)}
                     onResetPoints={resetLandmarks}
                     onResetEye={resetEye}
                   />

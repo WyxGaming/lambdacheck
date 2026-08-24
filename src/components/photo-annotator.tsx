@@ -52,6 +52,15 @@ export function PhotoAnnotator({
   const pointerRef = useRef<Point | null>(null);
   const [cursor, setCursor] = useState<Point | null>(null);
   const [imageVersion, setImageVersion] = useState(0);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const imageStatus = !imageUrl
+    ? "empty"
+    : failedUrl === imageUrl
+      ? "error"
+      : loadedUrl === imageUrl
+        ? "ready"
+        : "loading";
 
   useEffect(() => {
     landmarksRef.current = landmarks;
@@ -67,17 +76,22 @@ export function PhotoAnnotator({
 
     let cancelled = false;
     const img = new Image();
-    img.onload = () => {
+    const markReady = () => {
       if (cancelled) return;
+      if (img.naturalWidth < 1) return;
       imageRef.current = img;
+      setLoadedUrl(imageUrl);
       setImageVersion((version) => version + 1);
     };
+    img.onload = markReady;
     img.onerror = () => {
       if (cancelled) return;
       imageRef.current = null;
+      setFailedUrl(imageUrl);
       setImageVersion((version) => version + 1);
     };
     img.src = imageUrl;
+    void img.decode().then(markReady).catch(() => undefined);
     return () => {
       cancelled = true;
     };
@@ -237,6 +251,18 @@ export function PhotoAnnotator({
             <p className="max-w-sm text-sm text-white/70">
               Importez une photographie monoculaire de {eye === "OD" ? "l’œil droit" : "l’œil gauche"}
               , limbe entier visible, reflet cornéen net.
+            </p>
+          </div>
+        )}
+        {imageStatus === "loading" && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
+            <p className="text-sm text-white/70">Chargement de la photographie…</p>
+          </div>
+        )}
+        {imageStatus === "error" && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
+            <p className="max-w-sm text-sm text-rose-200">
+              Impossible d’afficher cette image. Réessayez avec un JPEG ou un PNG.
             </p>
           </div>
         )}
