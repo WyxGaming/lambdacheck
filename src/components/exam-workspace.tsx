@@ -14,7 +14,7 @@ import {
 import { PhotoAnnotator } from "@/components/photo-annotator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -71,6 +71,7 @@ export function ExamWorkspace() {
   const [activeEye, setActiveEye] = useState<EyeSide>("OD");
   const [activeLandmark, setActiveLandmark] = useState<LandmarkId>(FIRST_LANDMARK);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const odMeasure = useMemo(() => measureEye("OD", od.landmarks, params), [od.landmarks, params]);
   const osMeasure = useMemo(() => measureEye("OS", os.landmarks, params), [os.landmarks, params]);
@@ -96,21 +97,41 @@ export function ExamWorkspace() {
     setActiveLandmark(FIRST_LANDMARK);
   };
 
-  const loadDemo = (eye: EyeSide) => {
-    const synthetic = createSyntheticEye(eye, params);
-    const setter = eye === "OD" ? setOd : setOs;
-    setter((prev) => {
-      if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
-      return {
-        imageUrl: synthetic.dataUrl,
-        fileName: `exemple-${eye.toLowerCase()}.png`,
-        landmarks: {},
-        isDemo: true,
-        demoTruth: synthetic.landmarks,
-      };
-    });
-    setActiveEye(eye);
-    setActiveLandmark(FIRST_LANDMARK);
+  const loadDemo = async (eye: EyeSide) => {
+    setDemoError(null);
+    try {
+      const synthetic = createSyntheticEye(eye, params);
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        synthetic.canvas.toBlob(
+          (result) => {
+            if (result) resolve(result);
+            else reject(new Error("Export de l’exemple impossible."));
+          },
+          "image/jpeg",
+          0.92,
+        );
+      });
+      const url = URL.createObjectURL(blob);
+      const setter = eye === "OD" ? setOd : setOs;
+      setter((prev) => {
+        if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
+        return {
+          imageUrl: url,
+          fileName: `exemple-${eye.toLowerCase()}.jpg`,
+          landmarks: {},
+          isDemo: true,
+          demoTruth: synthetic.landmarks,
+        };
+      });
+      setActiveEye(eye);
+      setActiveLandmark(FIRST_LANDMARK);
+    } catch (error) {
+      setDemoError(
+        error instanceof Error
+          ? error.message
+          : "Impossible de générer l’exemple pédagogique.",
+      );
+    }
   };
 
   const resetLandmarks = () => {
@@ -235,10 +256,15 @@ export function ExamWorkspace() {
                     eye={eye}
                     draft={eye === "OD" ? od : os}
                     onFiles={(files) => handleFiles(files, eye)}
-                    onDemo={() => loadDemo(eye)}
+                    onDemo={() => {
+                      void loadDemo(eye);
+                    }}
                     onResetPoints={resetLandmarks}
                     onResetEye={resetEye}
                   />
+                  {demoError && activeEye === eye && (
+                    <p className="text-sm text-destructive">{demoError}</p>
+                  )}
                   <LandmarkPicker
                     landmarks={eye === "OD" ? od.landmarks : os.landmarks}
                     active={activeLandmark}
@@ -336,10 +362,14 @@ function EyeToolbar({
           Importer {eye}
         </span>
       </label>
-      <Button variant="outline" onClick={onDemo}>
+      <button
+        type="button"
+        className={cn(buttonVariants({ variant: "outline" }))}
+        onClick={onDemo}
+      >
         <Sparkles />
         Exemple pédagogique
-      </Button>
+      </button>
       <Button variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
         <Eraser />
         Effacer les points

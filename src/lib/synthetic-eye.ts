@@ -9,7 +9,7 @@ import {
 export const DEMO_DISPLACEMENT_MM = 0.45;
 
 export type SyntheticEye = {
-  dataUrl: string;
+  canvas: HTMLCanvasElement;
   landmarks: EyeLandmarks;
   expectedDegrees: number;
 };
@@ -56,7 +56,7 @@ export function createSyntheticEye(
     measured.status === "ok" ? measured.angleLambdaDeg : 0;
 
   return {
-    dataUrl: canvas.toDataURL("image/png"),
+    canvas,
     landmarks,
     expectedDegrees,
   };
