@@ -59,8 +59,9 @@ function Hero() {
               OD et OS, vision monoculaire, patient de face.
             </li>
             <li>
-              <span className="font-medium text-foreground">Quatre points par œil</span>{" "}
-              — limbe temporal, limbe nasal, centre pupillaire, reflet cornéen.
+              <span className="font-medium text-foreground">Cinq curseurs par œil</span>{" "}
+              — limbe nasal, limbe temporal, bord pupillaire nasal, bord
+              pupillaire temporal, reflet de Purkinje.
             </li>
             <li>
               <span className="font-medium text-foreground">Un résultat signé</span>{" "}
@@ -90,7 +91,7 @@ function Protocol() {
     },
     {
       title: "Marquer, puis lire λ",
-      body: "Posez les deux bords du limbe (échelle), le centre pupillaire et le reflet. L’angle s’affiche pour OD et OS, avec le sens nasal ou temporal.",
+      body: "Posez limbe nasal et temporal, les deux bords pupillaires, puis le reflet de Purkinje. Le centre pupillaire est le milieu des bords. L’angle s’affiche pour OD et OS, nasal ou temporal.",
     },
   ];
 
@@ -146,8 +147,9 @@ function FormulaSection() {
             <div>
               <dt className="text-muted-foreground">δ</dt>
               <dd>
-                Distance horizontale reflet → centre pupillaire, convertie en mm
-                grâce au HVID, positive vers le nasal.
+                Distance horizontale reflet de Purkinje → centre pupillaire
+                (milieu des bords nasal et temporal), convertie en mm grâce au
+                HVID, positive vers le nasal.
               </dd>
             </div>
             <div>
@@ -166,8 +168,8 @@ function FormulaSection() {
             fonction <code className="rounded bg-background px-1 py-0.5 text-foreground">computeAngleLambda</code>{" "}
             dans <code className="rounded bg-background px-1 py-0.5 text-foreground">src/lib/lambda.ts</code>{" "}
             sera remplacée. Les grandeurs déjà mesurées (δ nasal, composante
-            verticale, déplacement radial, R, HVID, côté) sont prêtes à
-            l’emploi.
+            verticale, déplacement radial, diamètre pupillaire, R, HVID, côté)
+            sont prêtes à l’emploi.
           </p>
         </div>
       </div>

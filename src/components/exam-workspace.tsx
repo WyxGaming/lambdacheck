@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DEFAULT_PARAMS,
+  FIRST_LANDMARK,
   FORMULA,
   LANDMARK_META,
   LANDMARK_ORDER,
@@ -67,7 +68,7 @@ export function ExamWorkspace() {
   const [od, setOd] = useState<EyeDraft>(emptyEye);
   const [os, setOs] = useState<EyeDraft>(emptyEye);
   const [activeEye, setActiveEye] = useState<EyeSide>("OD");
-  const [activeLandmark, setActiveLandmark] = useState<LandmarkId>("limbusTemporal");
+  const [activeLandmark, setActiveLandmark] = useState<LandmarkId>(FIRST_LANDMARK);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
 
   const odMeasure = useMemo(() => measureEye("OD", od.landmarks, params), [od.landmarks, params]);
@@ -90,7 +91,7 @@ export function ExamWorkspace() {
       };
     });
     setActiveEye(eye);
-    setActiveLandmark("limbusTemporal");
+    setActiveLandmark(FIRST_LANDMARK);
   };
 
   const loadDemo = (eye: EyeSide) => {
@@ -106,12 +107,12 @@ export function ExamWorkspace() {
       };
     });
     setActiveEye(eye);
-    setActiveLandmark("limbusTemporal");
+    setActiveLandmark(FIRST_LANDMARK);
   };
 
   const resetLandmarks = () => {
     setCurrent((prev) => ({ ...prev, landmarks: {} }));
-    setActiveLandmark("limbusTemporal");
+    setActiveLandmark(FIRST_LANDMARK);
   };
 
   const resetEye = () => {
@@ -121,7 +122,7 @@ export function ExamWorkspace() {
       }
       return emptyEye();
     });
-    setActiveLandmark("limbusTemporal");
+    setActiveLandmark(FIRST_LANDMARK);
   };
 
   const handleLandmarksChange = (landmarks: EyeLandmarks) => {
@@ -146,7 +147,7 @@ export function ExamWorkspace() {
             Examen photographique
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Chargez une photo par œil, placez les quatre points, et l’angle
+            Chargez une photo par œil, placez les cinq curseurs, et l’angle
             lambda se calcule immédiatement. Rien n’est envoyé hors de cet
             appareil.
           </p>
@@ -175,8 +176,8 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
-                  Cliquez pour poser le point actif, ou faites glisser un
-                  marqueur déjà placé. Une loupe suit le curseur.
+                Cliquez pour poser le curseur actif, ou faites glisser un
+                marqueur déjà placé. Une loupe suit le curseur.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -258,6 +259,7 @@ export function ExamWorkspace() {
                           displacementNasalMm: DEMO_DISPLACEMENT_MM,
                           displacementVerticalMm: 0,
                           radialMm: DEMO_DISPLACEMENT_MM,
+                          pupilDiameterMm: 4,
                           cornealRadiusMm: params.cornealRadiusMm,
                           hvidMm: params.hvidMm,
                         }).degrees,
@@ -353,7 +355,7 @@ function LandmarkPicker({
   onChange: (id: LandmarkId) => void;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       {LANDMARK_ORDER.map((id, index) => {
         const meta = LANDMARK_META[id];
         const placed = Boolean(landmarks[id]);
@@ -491,6 +493,12 @@ function EyeResult({
           <dt>δ nasal</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.displacementNasalMm)}
+          </dd>
+        </div>
+        <div>
+          <dt>Diamètre pupillaire</dt>
+          <dd className="text-foreground tabular-nums">
+            {formatMm(measurement.pupilDiameterMm)}
           </dd>
         </div>
         <div>

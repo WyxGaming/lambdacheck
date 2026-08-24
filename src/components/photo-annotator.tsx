@@ -9,6 +9,7 @@ import {
   type EyeSide,
   type LandmarkId,
   type Point,
+  derivedPupilCenter,
   distance,
   nasalDirectionX,
   nextLandmark,
@@ -279,7 +280,9 @@ function drawGuides(
 ) {
   const temporal = landmarks.limbusTemporal;
   const nasal = landmarks.limbusNasal;
-  const pupil = landmarks.pupilCenter;
+  const pupilNasal = landmarks.pupilNasal;
+  const pupilTemporal = landmarks.pupilTemporal;
+  const pupil = derivedPupilCenter(landmarks);
   const reflex = landmarks.cornealReflex;
 
   if (temporal && nasal) {
@@ -303,15 +306,41 @@ function drawGuides(
     ctx.stroke();
   }
 
-  if (pupil && reflex) {
-    const p = imageToCss(pupil, layout);
-    const r = imageToCss(reflex, layout);
+  if (pupilNasal && pupilTemporal) {
+    const a = imageToCss(pupilNasal, layout);
+    const b = imageToCss(pupilTemporal, layout);
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(r.x, r.y);
-    ctx.strokeStyle = "rgba(251, 113, 133, 0.95)";
-    ctx.lineWidth = 2;
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
+    ctx.lineWidth = 1.5;
     ctx.stroke();
+  }
+
+  if (pupil) {
+    const p = imageToCss(pupil, layout);
+    ctx.beginPath();
+    ctx.moveTo(p.x - 8, p.y);
+    ctx.lineTo(p.x + 8, p.y);
+    ctx.moveTo(p.x, p.y - 8);
+    ctx.lineTo(p.x, p.y + 8);
+    ctx.strokeStyle = "rgba(253, 230, 138, 0.95)";
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(253, 230, 138, 0.95)";
+    ctx.font = "600 10px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("centre", p.x + 10, p.y + 12);
+
+    if (reflex) {
+      const r = imageToCss(reflex, layout);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(r.x, r.y);
+      ctx.strokeStyle = "rgba(251, 113, 133, 0.95)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
 
     const nasalX = nasalDirectionX(eye);
     ctx.beginPath();

@@ -22,7 +22,7 @@ npm run build
 
 1. Photographiez chaque œil en vision monoculaire (œil controlatéral occlus), patient de face, regard sur l’objectif, limbe entier visible, reflet net.
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
-3. Placez quatre points : limbe temporal, limbe nasal, centre pupillaire, reflet cornéen.
+3. Placez cinq curseurs : limbe nasal, limbe temporal, bord pupillaire nasal, bord pupillaire temporal, reflet de Purkinje. Le centre pupillaire est le milieu des deux bords.
 4. Lisez λ (degrés, nasal ou temporal) et copiez le compte-rendu.
 
 L’échelle utilise le diamètre irien horizontal (HVID, 11,7 mm par défaut). Le rayon de courbure cornéen R (7,80 mm par défaut) entre dans la formule actuelle.
@@ -35,10 +35,10 @@ La relation clinique définitive n’est pas encore branchée. En attendant :
 λ = arctan(δ / R)
 ```
 
-- `δ` : déplacement horizontal du reflet par rapport au centre pupillaire, en mm, **positif vers le nasal**
+- `δ` : déplacement horizontal du reflet par rapport au centre pupillaire (milieu des bords pupillaires), en mm, **positif vers le nasal**
 - `R` : rayon de courbure cornéen antérieur, en mm
 
-Pour la remplacer, modifier uniquement `computeAngleLambda` dans `src/lib/lambda.ts`. Les grandeurs déjà mesurées (δ nasal, composante verticale, déplacement radial, R, HVID, côté OD/OS) sont passées en entrée.
+Pour la remplacer, modifier uniquement `computeAngleLambda` dans `src/lib/lambda.ts`. Les grandeurs déjà mesurées (δ nasal, composante verticale, déplacement radial, diamètre pupillaire, R, HVID, côté OD/OS) sont passées en entrée.
 
 Convention d’image : patient de face, photo non retournée. Nasal à droite pour l’OD, à gauche pour l’OS.
 

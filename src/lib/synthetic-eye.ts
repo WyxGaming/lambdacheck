@@ -47,7 +47,8 @@ export function createSyntheticEye(
   const landmarks: EyeLandmarks = {
     limbusTemporal: { x: cx - nasalX * irisR, y: cy },
     limbusNasal: { x: cx + nasalX * irisR, y: cy },
-    pupilCenter: { x: cx, y: cy },
+    pupilTemporal: { x: cx - nasalX * pupilR, y: cy },
+    pupilNasal: { x: cx + nasalX * pupilR, y: cy },
     cornealReflex: { x: reflexX, y: reflexY },
   };
 
@@ -56,6 +57,7 @@ export function createSyntheticEye(
     displacementNasalMm: DEMO_DISPLACEMENT_MM,
     displacementVerticalMm: -2 / pxPerMm,
     radialMm: DEMO_DISPLACEMENT_MM,
+    pupilDiameterMm: (pupilR * 2) / pxPerMm,
     cornealRadiusMm: params.cornealRadiusMm,
     hvidMm: params.hvidMm,
   }).degrees;
