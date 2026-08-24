@@ -12,7 +12,7 @@ import {
 
 import { PhotoAnnotator } from "@/components/photo-annotator";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DEFAULT_PARAMS,
   FIRST_LANDMARK,
@@ -87,7 +87,9 @@ export function ExamWorkspace() {
     const url = await fileToObjectUrl(file);
     const setter = eye === "OD" ? setOd : setOs;
     setter((prev) => {
-      if (prev.imageUrl) URL.revokeObjectURL(prev.imageUrl);
+      if (prev.imageUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(prev.imageUrl);
+      }
       return {
         imageUrl: url,
         fileName: file.name,
@@ -227,55 +229,54 @@ export function ExamWorkspace() {
                   )}
                 </TabsTrigger>
               </TabsList>
-
-              {(["OD", "OS"] as const).map((eye) => (
-                <TabsContent key={eye} value={eye} className="space-y-4">
-                  <div
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "copy";
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      handleFiles(event.dataTransfer.files, eye);
-                    }}
-                    className="space-y-4"
-                  >
-                  <EyeToolbar
-                    eye={eye}
-                    draft={eye === "OD" ? od : os}
-                    onFiles={(files) => handleFiles(files, eye)}
-                    onDemo={() => loadDemo(eye)}
-                    onResetPoints={resetLandmarks}
-                    onResetEye={resetEye}
-                  />
-                  {demoError && activeEye === eye && (
-                    <p className="text-sm text-destructive">{demoError}</p>
-                  )}
-                  <LandmarkPicker
-                    landmarks={eye === "OD" ? od.landmarks : os.landmarks}
-                    active={activeLandmark}
-                    onChange={setActiveLandmark}
-                  />
-                  <PhotoAnnotator
-                    eye={eye}
-                    imageUrl={eye === "OD" ? od.imageUrl : os.imageUrl}
-                    landmarks={eye === "OD" ? od.landmarks : os.landmarks}
-                    activeLandmark={activeLandmark}
-                    onLandmarksChange={handleLandmarksChange}
-                    onActiveLandmarkChange={setActiveLandmark}
-                  />
-                  {(eye === "OD" ? od : os).demoTruth && (
-                    <DemoHint
-                      eye={eye}
-                      params={params}
-                      truth={(eye === "OD" ? od : os).demoTruth!}
-                    />
-                  )}
-                  </div>
-                </TabsContent>
-              ))}
             </Tabs>
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                void handleFiles(event.dataTransfer.files, activeEye);
+              }}
+              className="space-y-4"
+            >
+              <EyeToolbar
+                eye={activeEye}
+                draft={activeEye === "OD" ? od : os}
+                onFiles={(files) => void handleFiles(files, activeEye)}
+                onDemo={() => loadDemo(activeEye)}
+                onResetPoints={resetLandmarks}
+                onResetEye={resetEye}
+              />
+              {demoError && (
+                <p className="text-sm text-destructive">{demoError}</p>
+              )}
+              <LandmarkPicker
+                landmarks={
+                  activeEye === "OD" ? od.landmarks : os.landmarks
+                }
+                active={activeLandmark}
+                onChange={setActiveLandmark}
+              />
+              <PhotoAnnotator
+                eye={activeEye}
+                imageUrl={activeEye === "OD" ? od.imageUrl : os.imageUrl}
+                landmarks={
+                  activeEye === "OD" ? od.landmarks : os.landmarks
+                }
+                activeLandmark={activeLandmark}
+                onLandmarksChange={handleLandmarksChange}
+                onActiveLandmarkChange={setActiveLandmark}
+              />
+              {(activeEye === "OD" ? od : os).demoTruth && (
+                <DemoHint
+                  eye={activeEye}
+                  params={params}
+                  truth={(activeEye === "OD" ? od : os).demoTruth!}
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -337,33 +338,29 @@ function EyeToolbar({
 }) {
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-      <label className="inline-flex">
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/*"
-          className="sr-only"
-          onChange={(event) => {
-            onFiles(event.target.files);
-            event.target.value = "";
-          }}
-        />
+      <label className="relative inline-flex h-8 cursor-pointer">
         <span
           className={cn(
-            "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/85",
+            "inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/85",
           )}
         >
           <ImagePlus className="size-4" />
           Importer {eye}
         </span>
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/*"
+          className="absolute inset-0 cursor-pointer opacity-0"
+          onChange={(event) => {
+            onFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
       </label>
-      <button
-        type="button"
-        className={cn(buttonVariants({ variant: "outline" }))}
-        onClick={onDemo}
-      >
+      <Button type="button" variant="outline" onClick={onDemo}>
         <Sparkles />
         Exemple pédagogique
-      </button>
+      </Button>
       <Button type="button" variant="ghost" onClick={onResetPoints} disabled={!draft.imageUrl}>
         <Eraser />
         Effacer les points
