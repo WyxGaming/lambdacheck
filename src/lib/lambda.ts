@@ -244,6 +244,10 @@ export type EyeMeasurement =
       dacFromReference: boolean;
       horizontal: AxisMeasurement;
       vertical: AxisMeasurement | null;
+      oblique: {
+        angleLambdaDeg: number;
+        angleLambdaMm: number;
+      } | null;
       pupilDiameterMm: number;
       correctopieMm: number;
       ratioLambda: number;
@@ -258,6 +262,19 @@ export type EyeMeasurement =
       formulaExpression: string;
       warnings: string[];
     };
+
+export function obliqueLambda(
+  horizontal: AxisMeasurement,
+  vertical: AxisMeasurement,
+): { angleLambdaDeg: number; angleLambdaMm: number } {
+  return {
+    angleLambdaDeg: Math.hypot(
+      horizontal.angleLambdaDeg,
+      vertical.angleLambdaDeg,
+    ),
+    angleLambdaMm: Math.hypot(horizontal.angleLambdaMm, vertical.angleLambdaMm),
+  };
+}
 
 export function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
@@ -786,6 +803,7 @@ export function measureEye(
     dacFromReference: scale.dacFromReference,
     horizontal,
     vertical,
+    oblique: vertical ? obliqueLambda(horizontal, vertical) : null,
     pupilDiameterMm: horizontal.pupilDiameterMm,
     correctopieMm: horizontal.correctopieMm,
     ratioLambda: horizontal.ratioLambda,
@@ -835,6 +853,16 @@ export function lateralityLabel(laterality: Laterality): string {
   if (laterality === "temporal") return "temporal";
   if (laterality === "superior") return "supérieur";
   return "inférieur";
+}
+
+export function obliqueLateralityLabel(
+  horizontal: Laterality,
+  vertical: Laterality,
+): string {
+  const parts: string[] = [];
+  if (horizontal !== "centred") parts.push(lateralityLabel(horizontal));
+  if (vertical !== "centred") parts.push(lateralityLabel(vertical));
+  return parts.length > 0 ? parts.join(" · ") : "centré";
 }
 
 export function eyeLabel(eye: EyeSide): string {

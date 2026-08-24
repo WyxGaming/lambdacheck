@@ -202,6 +202,21 @@ test("λ vertical : reflet supérieur au centre pupillaire → λv positif", () 
     measurement.vertical!.angleLambdaMm.toFixed(6),
     expectedVMm.toFixed(6),
   );
+  assert.ok(measurement.oblique);
+  assert.equal(
+    measurement.oblique!.angleLambdaDeg.toFixed(6),
+    Math.hypot(
+      measurement.angleLambdaDeg,
+      measurement.vertical!.angleLambdaDeg,
+    ).toFixed(6),
+  );
+  assert.equal(
+    measurement.oblique!.angleLambdaMm.toFixed(6),
+    Math.hypot(
+      measurement.angleLambdaMm,
+      measurement.vertical!.angleLambdaMm,
+    ).toFixed(6),
+  );
 });
 
 test("mesure horizontale possible avant d’avoir fini le vertical", () => {
@@ -220,6 +235,7 @@ test("mesure horizontale possible avant d’avoir fini le vertical", () => {
   if (measurement.status !== "ok") return;
   assert.equal(measurement.laterality, "nasal");
   assert.equal(measurement.vertical, null);
+  assert.equal(measurement.oblique, null);
 });
 
 test("poignées cardinales de l’ellipse du limbe", () => {

@@ -40,6 +40,7 @@ import {
   lateralityLabel,
   measureEye,
   nextLandmark,
+  obliqueLateralityLabel,
   REFERENCE_DAC_MM,
   REFERENCE_WTW_MM,
   resolveScale,
@@ -309,6 +310,9 @@ function DemoHint({
       {expected.vertical
         ? ` · λv ≈ ${formatDeg(expected.vertical.angleLambdaDeg, true)} / ${formatMm(expected.vertical.angleLambdaMm, true)} (${lateralityLabel(expected.vertical.laterality)})`
         : ""}
+      {expected.oblique
+        ? ` · λoblique ≈ ${formatDeg(expected.oblique.angleLambdaDeg)} / ${formatMm(expected.oblique.angleLambdaMm)}`
+        : ""}
       .
     </p>
   );
@@ -458,7 +462,7 @@ function ResultsCard({
         <CardTitle>Angle lambda</CardTitle>
         <CardDescription>
           {patientRef ? `Patient ${patientRef} · ` : null}
-          Un œil puis l’autre · λ horizontal et vertical.
+          Un œil puis l’autre · λ horizontal, vertical et oblique.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -564,6 +568,27 @@ function EyeResult({
           </p>
         )}
       </div>
+      {measurement.oblique && measurement.vertical && (
+        <div>
+          <p className="text-[11px] text-muted-foreground">λ oblique</p>
+          <div className="flex items-baseline justify-between gap-3">
+            <div>
+              <p className="font-heading text-3xl tracking-tight tabular-nums">
+                {formatDeg(measurement.oblique.angleLambdaDeg)}
+              </p>
+              <p className="text-sm tabular-nums text-muted-foreground">
+                {formatMm(measurement.oblique.angleLambdaMm)}
+              </p>
+            </div>
+            <Badge variant="secondary">
+              {obliqueLateralityLabel(
+                measurement.laterality,
+                measurement.vertical.laterality,
+              )}
+            </Badge>
+          </div>
+        </div>
+      )}
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <div>
           <dt>DAC</dt>
@@ -724,10 +749,10 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
     return `${eye} : mesure incomplète`;
   }
   const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
-  if (!measurement.vertical) {
+  if (!measurement.vertical || !measurement.oblique) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {

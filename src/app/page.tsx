@@ -28,8 +28,8 @@ function Intro() {
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
           Ouvrez le site, importez une photo monoculaire, marquez l’axe
-          horizontal puis l’ellipse du limbe. λ horizontal et λ vertical
-          s’affichent. Aucun compte, aucune installation.
+          horizontal puis l’ellipse du limbe. λ horizontal, vertical et
+          oblique s’affichent. Aucun compte, aucune installation.
         </p>
       </div>
       <details

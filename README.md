@@ -43,7 +43,7 @@ npm test    # vérifie le calcul et la géométrie
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
 3. Placez limbe nasal et temporal. Collez l’ellipse au limbe en glissant les poignées, le contour ou le centre. Posez ensuite les quatre bords pupillaires un par un (PN, PT, PS, PI — la pupille n’est pas forcément ronde), puis le reflet de Purkinje.
 4. Indiquez le WtW et la DAC s’ils sont connus ; sinon 11,71 mm et 3,4 mm. Sur la photo, le WtW correspond à limbe nasal → limbe temporal.
-5. Lisez λ horizontal et λ vertical (en degrés et en mm), les diamètres pupillaires et les correctopies, puis copiez le compte-rendu.
+5. Lisez λ horizontal, λ vertical et λ oblique (en degrés et en mm), les diamètres pupillaires et les correctopies, puis copiez le compte-rendu.
 
 ## Formule (KappaView4)
 
