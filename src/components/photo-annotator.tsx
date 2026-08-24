@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Minus, Plus } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   LANDMARK_META,
   LANDMARK_ORDER,
@@ -31,9 +33,18 @@ type Layout = {
   oy: number;
 };
 
+type View = {
+  zoom: number;
+  panX: number;
+  panY: number;
+};
+
 const HIT_RADIUS_CSS = 14;
 const LOUPE_SIZE = 148;
 const LOUPE_ZOOM = 2.8;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 6;
+const IDENTITY_VIEW: View = { zoom: 1, panX: 0, panY: 0 };
 
 export function PhotoAnnotator({
   eye,
@@ -49,7 +60,21 @@ export function PhotoAnnotator({
   const landmarksRef = useRef(landmarks);
   const activeRef = useRef(activeLandmark);
   const dragRef = useRef<LandmarkId | null>(null);
+  const panDragRef = useRef<{
+    x: number;
+    y: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
   const pointerRef = useRef<Point | null>(null);
+  const pointersRef = useRef(new Map<number, Point>());
+  const pinchRef = useRef<{
+    dist: number;
+    mid: Point;
+    view: View;
+  } | null>(null);
+  const viewRef = useRef<View>(IDENTITY_VIEW);
+  const [view, setView] = useState<View>(IDENTITY_VIEW);
   const [cursor, setCursor] = useState<Point | null>(null);
   const [imageVersion, setImageVersion] = useState(0);
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
@@ -62,6 +87,19 @@ export function PhotoAnnotator({
         ? "ready"
         : "loading";
 
+  const commitView = useCallback((next: View) => {
+    const img = imageRef.current;
+    const canvas = canvasRef.current;
+    const clamped =
+      img && canvas
+        ? clampView(next, img, canvas.clientWidth, canvas.clientHeight)
+        : next.zoom <= 1
+          ? IDENTITY_VIEW
+          : next;
+    viewRef.current = clamped;
+    setView(clamped);
+  }, []);
+
   useEffect(() => {
     landmarksRef.current = landmarks;
   }, [landmarks]);
@@ -71,6 +109,8 @@ export function PhotoAnnotator({
   }, [activeLandmark]);
 
   useEffect(() => {
+    viewRef.current = IDENTITY_VIEW;
+    setView(IDENTITY_VIEW);
     imageRef.current = null;
     if (!imageUrl) return;
 
@@ -97,6 +137,18 @@ export function PhotoAnnotator({
     };
   }, [imageUrl]);
 
+  const currentLayout = useCallback((): Layout | null => {
+    const img = imageRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas || canvas.clientWidth === 0) return null;
+    return layoutFor(
+      img,
+      canvas.clientWidth,
+      canvas.clientHeight,
+      viewRef.current,
+    );
+  }, []);
+
   const redraw = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -122,21 +174,27 @@ export function PhotoAnnotator({
 
     if (!img) return;
 
-    const layout = fitImage(img, cssW, cssH);
-    ctx.drawImage(img, layout.ox, layout.oy, img.width * layout.scale, img.height * layout.scale);
+    const layout = layoutFor(img, cssW, cssH, viewRef.current);
+    ctx.drawImage(
+      img,
+      layout.ox,
+      layout.oy,
+      img.width * layout.scale,
+      img.height * layout.scale,
+    );
 
     drawGuides(ctx, layout, landmarksRef.current, eye);
     drawLandmarks(ctx, layout, landmarksRef.current, activeRef.current);
 
     const pointer = pointerRef.current;
-    if (pointer && !dragRef.current) {
+    if (pointer && !dragRef.current && !panDragRef.current && !pinchRef.current) {
       drawLoupe(ctx, img, layout, pointer, cssW);
     }
   }, [eye]);
 
   useEffect(() => {
     redraw();
-  }, [redraw, landmarks, activeLandmark, imageVersion, cursor]);
+  }, [redraw, landmarks, activeLandmark, imageVersion, cursor, view]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -145,6 +203,33 @@ export function PhotoAnnotator({
     observer.observe(container);
     return () => observer.disconnect();
   }, [redraw]);
+
+  const zoomAt = useCallback(
+    (focalCss: Point, nextZoom: number) => {
+      const img = imageRef.current;
+      const canvas = canvasRef.current;
+      if (!img || !canvas) return;
+      const cssW = canvas.clientWidth;
+      const cssH = canvas.clientHeight;
+      commitView(zoomTo(nextZoom, focalCss, viewRef.current, img, cssW, cssH));
+    },
+    [commitView],
+  );
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const onWheel = (event: WheelEvent) => {
+      if (!imageRef.current) return;
+      event.preventDefault();
+      const rect = node.getBoundingClientRect();
+      const focal = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
+      zoomAt(focal, viewRef.current.zoom * factor);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [zoomAt]);
 
   const eventToCss = (event: React.PointerEvent<HTMLCanvasElement>): Point => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -155,18 +240,14 @@ export function PhotoAnnotator({
     event: React.PointerEvent<HTMLCanvasElement>,
   ): Point | null => {
     const img = imageRef.current;
-    const canvas = canvasRef.current;
-    if (!img || !canvas) return null;
-    const css = eventToCss(event);
-    const layout = fitImage(img, canvas.clientWidth, canvas.clientHeight);
-    return cssToImage(css, layout, img);
+    const layout = currentLayout();
+    if (!img || !layout) return null;
+    return cssToImage(eventToCss(event), layout, img);
   };
 
   const hitTest = (cssPoint: Point): LandmarkId | null => {
-    const img = imageRef.current;
-    const canvas = canvasRef.current;
-    if (!img || !canvas) return null;
-    const layout = fitImage(img, canvas.clientWidth, canvas.clientHeight);
+    const layout = currentLayout();
+    if (!layout) return null;
     let best: { id: LandmarkId; dist: number } | null = null;
     for (const id of LANDMARK_ORDER) {
       const point = landmarksRef.current[id];
@@ -180,30 +261,121 @@ export function PhotoAnnotator({
     return best?.id ?? null;
   };
 
+  const beginPinch = () => {
+    const pts = [...pointersRef.current.values()];
+    if (pts.length < 2) return;
+    pinchRef.current = {
+      dist: Math.max(distance(pts[0], pts[1]), 1),
+      mid: midpoint(pts[0], pts[1]),
+      view: { ...viewRef.current },
+    };
+    dragRef.current = null;
+    panDragRef.current = null;
+  };
+
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!imageRef.current) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
     const css = eventToCss(event);
-    const hit = hitTest(css);
-    if (hit) {
-      dragRef.current = hit;
-      onActiveLandmarkChange(hit);
+    pointersRef.current.set(event.pointerId, css);
+
+    if (pointersRef.current.size >= 2) {
+      beginPinch();
       return;
     }
+
+    if (event.shiftKey && viewRef.current.zoom > 1) {
+      panDragRef.current = {
+        x: css.x,
+        y: css.y,
+        panX: viewRef.current.panX,
+        panY: viewRef.current.panY,
+      };
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
     const imagePoint = eventToImage(event);
-    if (!imagePoint) return;
+    const hit = hitTest(css);
+    const activePlaced = Boolean(landmarksRef.current[activeRef.current]);
+    // Un curseur pas encore posé ne doit pas être volé par un voisin trop proche.
+    const canDragHit = Boolean(
+      hit && (hit === activeRef.current || activePlaced),
+    );
+
+    if (canDragHit && hit) {
+      dragRef.current = hit;
+      onActiveLandmarkChange(hit);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      return;
+    }
+
+    if (!imagePoint) {
+      if (viewRef.current.zoom > 1) {
+        panDragRef.current = {
+          x: css.x,
+          y: css.y,
+          panX: viewRef.current.panX,
+          panY: viewRef.current.panY,
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      return;
+    }
+
     const next = {
       ...landmarksRef.current,
       [activeRef.current]: imagePoint,
     };
     onLandmarksChange(next);
     onActiveLandmarkChange(nextLandmark(next));
+    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const css = eventToCss(event);
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.set(event.pointerId, css);
+    }
+
+    if (pinchRef.current && pointersRef.current.size >= 2) {
+      const pts = [...pointersRef.current.values()];
+      const dist = Math.max(distance(pts[0], pts[1]), 1);
+      const mid = midpoint(pts[0], pts[1]);
+      const start = pinchRef.current;
+      const img = imageRef.current;
+      const canvas = canvasRef.current;
+      if (img && canvas) {
+        const zoomed = zoomTo(
+          start.view.zoom * (dist / start.dist),
+          mid,
+          start.view,
+          img,
+          canvas.clientWidth,
+          canvas.clientHeight,
+        );
+        commitView({
+          ...zoomed,
+          panX: zoomed.panX + (mid.x - start.mid.x),
+          panY: zoomed.panY + (mid.y - start.mid.y),
+        });
+      }
+      pointerRef.current = null;
+      setCursor(null);
+      return;
+    }
+
     pointerRef.current = css;
     setCursor(css);
+
+    const panDrag = panDragRef.current;
+    if (panDrag) {
+      commitView({
+        ...viewRef.current,
+        panX: panDrag.panX + (css.x - panDrag.x),
+        panY: panDrag.panY + (css.y - panDrag.y),
+      });
+      return;
+    }
 
     const dragId = dragRef.current;
     if (!dragId) return;
@@ -216,16 +388,29 @@ export function PhotoAnnotator({
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
     dragRef.current = null;
+    panDragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
 
-  const handlePointerLeave = () => {
+  const handlePointerLeave = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (pinchRef.current || dragRef.current || panDragRef.current) return;
+    pointersRef.current.delete(event.pointerId);
     pointerRef.current = null;
     setCursor(null);
     redraw();
+  };
+
+  const zoomByButton = (direction: 1 | -1) => {
+    const canvas = canvasRef.current;
+    const focal = canvas
+      ? { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 }
+      : { x: 0, y: 0 };
+    zoomAt(focal, viewRef.current.zoom * (direction > 0 ? 1.35 : 1 / 1.35));
   };
 
   return (
@@ -246,6 +431,40 @@ export function PhotoAnnotator({
           onPointerCancel={handlePointerUp}
           onPointerLeave={handlePointerLeave}
         />
+        {imageUrl && (
+          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-lg bg-black/55 p-1 text-white backdrop-blur-sm">
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              className="text-white hover:bg-white/15 hover:text-white"
+              onClick={() => zoomByButton(-1)}
+              disabled={view.zoom <= MIN_ZOOM}
+              aria-label="Dézoomer"
+            >
+              <Minus />
+            </Button>
+            <button
+              type="button"
+              className="min-w-12 px-1 text-center text-[11px] font-medium tabular-nums"
+              onClick={() => commitView(IDENTITY_VIEW)}
+              title="Revenir à 100 %"
+            >
+              {Math.round(view.zoom * 100)} %
+            </button>
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              className="text-white hover:bg-white/15 hover:text-white"
+              onClick={() => zoomByButton(1)}
+              disabled={view.zoom >= MAX_ZOOM}
+              aria-label="Zoomer"
+            >
+              <Plus />
+            </Button>
+          </div>
+        )}
         {!imageUrl && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 text-center">
             <p className="max-w-sm text-sm text-white/70">
@@ -272,13 +491,69 @@ export function PhotoAnnotator({
   );
 }
 
-function fitImage(img: HTMLImageElement, cssW: number, cssH: number): Layout {
-  const scale = Math.min(cssW / img.width, cssH / img.height);
+function layoutFor(
+  img: HTMLImageElement,
+  cssW: number,
+  cssH: number,
+  view: View,
+): Layout {
+  const fit = Math.min(cssW / img.width, cssH / img.height);
+  const scale = fit * view.zoom;
   return {
     scale,
-    ox: (cssW - img.width * scale) / 2,
-    oy: (cssH - img.height * scale) / 2,
+    ox: (cssW - img.width * scale) / 2 + view.panX,
+    oy: (cssH - img.height * scale) / 2 + view.panY,
   };
+}
+
+function clampView(
+  view: View,
+  img: HTMLImageElement,
+  cssW: number,
+  cssH: number,
+): View {
+  const zoom = clamp(view.zoom, MIN_ZOOM, MAX_ZOOM);
+  if (zoom <= 1.001) return IDENTITY_VIEW;
+  const fit = Math.min(cssW / img.width, cssH / img.height);
+  const imgW = img.width * fit * zoom;
+  const imgH = img.height * fit * zoom;
+  const maxX = Math.max(0, (imgW - cssW) / 2 + 32);
+  const maxY = Math.max(0, (imgH - cssH) / 2 + 32);
+  return {
+    zoom,
+    panX: clamp(view.panX, -maxX, maxX),
+    panY: clamp(view.panY, -maxY, maxY),
+  };
+}
+
+function zoomTo(
+  nextZoom: number,
+  focalCss: Point,
+  current: View,
+  img: HTMLImageElement,
+  cssW: number,
+  cssH: number,
+): View {
+  const zoom = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
+  if (zoom <= 1.001) return IDENTITY_VIEW;
+  const before = layoutFor(img, cssW, cssH, current);
+  const imgX = (focalCss.x - before.ox) / before.scale;
+  const imgY = (focalCss.y - before.oy) / before.scale;
+  const fit = Math.min(cssW / img.width, cssH / img.height);
+  const scale = fit * zoom;
+  return {
+    zoom,
+    panX: focalCss.x - imgX * scale - (cssW - img.width * scale) / 2,
+    panY: focalCss.y - imgY * scale - (cssH - img.height * scale) / 2,
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function midpoint(a: Point, b: Point): Point {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
 function cssToImage(

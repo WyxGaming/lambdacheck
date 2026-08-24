@@ -181,8 +181,9 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
-                Cliquez pour poser le curseur actif, ou faites glisser un
-                marqueur déjà placé. Une loupe suit le curseur.
+                Cliquez pour poser le curseur actif. Zoomez (boutons, molette
+                ou pincement) si deux points se confondent ; un curseur pas
+                encore posé n’est plus volé par son voisin.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
