@@ -113,7 +113,7 @@ export function ExamWorkspace() {
         }
         return {
           imageUrl: synthetic.imageUrl,
-          fileName: `exemple-${eye.toLowerCase()}.png`,
+          fileName: `exemple-${eye.toLowerCase()}.jpg`,
           landmarks: {},
           isDemo: true,
           demoTruth: synthetic.landmarks,
