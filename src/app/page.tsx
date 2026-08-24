@@ -1,6 +1,5 @@
 import { ExamWorkspace } from "@/components/exam-workspace";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
-import { FORMULA } from "@/lib/lambda";
 
 export default function Home() {
   return (
@@ -11,7 +10,6 @@ export default function Home() {
         <div className="mx-auto w-full max-w-6xl space-y-20 px-4 py-16 sm:px-6">
           <Protocol />
           <ExamWorkspace />
-          <FormulaSection />
         </div>
       </main>
       <SiteFooter />
@@ -64,13 +62,13 @@ function Hero() {
               pupillaire temporal, reflet de Purkinje.
             </li>
             <li>
-              <span className="font-medium text-foreground">Un résultat KappaView</span>{" "}
+              <span className="font-medium text-foreground">Un résultat</span>{" "}
               — λ, diamètre pupillaire et correctopie (excentration pupillaire).
             </li>
           </ul>
           <p className="mt-6 rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            Formule active : {FORMULA.expression} ({FORMULA.version}). Les
-            clichés restent locaux.
+            Les photographies restent dans le navigateur. Aucun envoi vers un
+            serveur.
           </p>
         </aside>
       </div>
@@ -119,80 +117,6 @@ function Protocol() {
             </p>
           </article>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function FormulaSection() {
-  return (
-    <section id="formule" className="scroll-mt-24">
-      <p className="text-xs font-medium tracking-[0.18em] text-primary uppercase">
-        Calcul
-      </p>
-      <h2 className="font-heading mt-1 text-3xl tracking-tight">
-        Formule KappaView — Necker-Enfants malades
-      </h2>
-      <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Angle lambda</p>
-          <p className="font-heading mt-2 text-2xl tracking-tight sm:text-3xl">
-            {FORMULA.expression}
-          </p>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            {FORMULA.notes}
-          </p>
-          <dl className="mt-6 grid gap-3 text-sm">
-            <div>
-              <dt className="text-muted-foreground">WtW</dt>
-              <dd>
-                Demandé au clinicien. Si le diamètre cornéen n’est pas connu, la
-                valeur de référence 11,71 mm est utilisée. Sur la photo, il
-                correspond à limbe nasal – limbe temporal.
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">DAC</dt>
-              <dd>
-                Demandée au clinicien. Si elle n’est pas connue, la valeur de
-                référence 3,4 mm est utilisée.
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Diamètre pupillaire</dt>
-              <dd>
-                Øp = 0,86 × WtW × (distance pupille nasale–temporale / distance
-                cornée nasale–temporale), en mm.
-              </dd>
-            </div>
-          </dl>
-        </div>
-        <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6">
-          <p className="text-sm font-medium">Grandeurs issues de la photo</p>
-          <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-            <li>
-              <span className="font-medium text-foreground">cornee_NLTL (WtW)</span>{" "}
-              — limbe nasal → limbe temporal
-            </li>
-            <li>
-              <span className="font-medium text-foreground">pupil_NPTP</span> —
-              bord pupillaire nasal → bord pupillaire temporal
-            </li>
-            <li>
-              <span className="font-medium text-foreground">NPPI</span> — bord
-              pupillaire nasal → reflet de Purkinje
-            </li>
-            <li>
-              <span className="font-medium text-foreground">taille_iris_nasal</span>{" "}
-              — limbe nasal → bord pupillaire nasal
-            </li>
-          </ul>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            Les distances sont projetées sur l’axe nasal–temporal du limbe, pour
-            coller au script KappaView tout en restant robustes si les points ne
-            sont pas parfaitement alignés.
-          </p>
-        </div>
       </div>
     </section>
   );

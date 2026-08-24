@@ -26,9 +26,6 @@ export function SiteHeader({ className }: { className?: string }) {
           <a href="#protocole" className="hidden text-muted-foreground hover:text-foreground sm:inline">
             Protocole
           </a>
-          <a href="#formule" className="hidden text-muted-foreground hover:text-foreground sm:inline">
-            Formule
-          </a>
           <a
             href="#mesure"
             className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
@@ -51,10 +48,7 @@ export function SiteFooter() {
           photographies restent dans le navigateur et ne sont pas transmises à
           un serveur.
         </p>
-        <p>
-          Formule KappaView (Hôpital Necker-Enfants malades). Les photographies
-          restent dans le navigateur.
-        </p>
+        <p>Les photographies restent dans le navigateur.</p>
       </div>
     </footer>
   );

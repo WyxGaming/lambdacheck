@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  AlertCircle,
   Check,
   Copy,
   Eraser,
@@ -12,7 +11,6 @@ import {
 } from "lucide-react";
 
 import { PhotoAnnotator } from "@/components/photo-annotator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -29,7 +27,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DEFAULT_PARAMS,
   FIRST_LANDMARK,
-  FORMULA,
   LANDMARK_META,
   LANDMARK_ORDER,
   type EyeLandmarks,
@@ -177,14 +174,6 @@ export function ExamWorkspace() {
           </Button>
         </div>
       </div>
-
-      <Alert>
-        <AlertCircle />
-        <AlertTitle>{FORMULA.title}</AlertTitle>
-        <AlertDescription>
-          {FORMULA.expression}. {FORMULA.notes}
-        </AlertDescription>
-      </Alert>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(280px,0.9fr)]">
         <Card>
@@ -552,21 +541,6 @@ function EyeResult({
             </span>
           </dd>
         </div>
-        <div>
-          <dt>Ratio λ (NPPI / Øp px)</dt>
-          <dd className="text-foreground tabular-nums">
-            {measurement.ratioLambda.toLocaleString("fr-FR", {
-              minimumFractionDigits: 3,
-              maximumFractionDigits: 3,
-            })}
-          </dd>
-        </div>
-        <div>
-          <dt>Décalage Purkinje</dt>
-          <dd className="text-foreground tabular-nums">
-            {formatMm(measurement.reflexOffsetMm)}
-          </dd>
-        </div>
       </dl>
       {measurement.warnings.map((warning) => (
         <p key={warning} className="text-xs text-amber-800">
@@ -591,7 +565,7 @@ function ParamsCard({
         <CardDescription>
           Saisissez le diamètre cornéen (WtW) et la profondeur de chambre
           antérieure (DAC) s’ils sont connus. Sinon les valeurs de référence
-          KappaView sont utilisées.
+          sont utilisées.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -662,7 +636,6 @@ function buildReport(
     date,
     patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
     `WtW ${wtwLabel} · DAC ${dacLabel}`,
-    `Formule : ${FORMULA.expression} (${FORMULA.version})`,
     "",
     formatEyeLine("OD", od),
     formatEyeLine("OS", os),
