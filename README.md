@@ -23,7 +23,7 @@ npm run build
 1. Photographiez chaque œil en vision monoculaire (œil controlatéral occlus), patient de face, regard sur l’objectif, limbe entier visible, reflet net.
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
 3. Placez cinq curseurs : limbe nasal, limbe temporal, bord pupillaire nasal, bord pupillaire temporal, reflet de Purkinje.
-4. Le WtW est mesuré sur la photo (limbe nasal → limbe temporal). Indiquez la DAC si vous la connaissez ; sinon la référence 3,4 mm est utilisée.
+4. Indiquez le WtW et la DAC s’ils sont connus ; sinon 11,71 mm et 3,4 mm. Sur la photo, le WtW correspond à limbe nasal → limbe temporal.
 5. Lisez λ, le diamètre pupillaire et la correctopie, puis copiez le compte-rendu.
 
 ## Formule (KappaView4)
@@ -44,7 +44,7 @@ correctopie = ((cornee_NLTL/2) − (pupil_NPTP/2 + iris_nasal)) × (WtW / cornee
 | `NPPI` | bord pupillaire nasal → reflet de Purkinje |
 | `iris_nasal` | limbe nasal → bord pupillaire nasal |
 
-Le WtW millimétrique d’échelle est 11,71 mm (référence KappaView) : les curseurs limbiques en donnent la mesure sur la photo. La DAC est saisie par le clinicien ; à défaut, 3,4 mm.
+Le WtW et la DAC sont saisis par le clinicien. S’ils sont inconnus : **11,71 mm** et **3,4 mm**. Sur la photo, le WtW correspond à la distance limbe nasal – limbe temporal.
 
 Implémentation : `src/lib/lambda.ts` (`computeAngleLambda`).
 

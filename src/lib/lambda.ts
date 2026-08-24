@@ -12,37 +12,37 @@ export type Point = { x: number; y: number };
 export type EyeLandmarks = Partial<Record<LandmarkId, Point>>;
 
 export type FormulaParams = {
+  /** WtW saisi par le clinicien, en mm. Null si inconnu → valeur de référence. */
+  wtwMm: number | null;
   /** DAC saisie par le clinicien, en mm. Null si inconnue → valeur de référence. */
   dacMm: number | null;
 };
 
-/** Échelle millimétrique du WtW mesuré sur la photo (limbe N–T). */
+/** Diamètre cornéen de référence si le clinicien n’a pas la biométrie. */
 export const REFERENCE_WTW_MM = 11.71;
 /** DAC de référence si le clinicien n’a pas la biométrie. */
 export const REFERENCE_DAC_MM = 3.4;
 
 export const DEFAULT_PARAMS: FormulaParams = {
+  wtwMm: null,
   dacMm: null,
 };
 
 export type ResolvedScale = {
   wtwMm: number;
   dacMm: number;
+  wtwFromReference: boolean;
   dacFromReference: boolean;
 };
 
 export function resolveScale(params: FormulaParams): ResolvedScale {
-  if (params.dacMm != null && params.dacMm > 0) {
-    return {
-      wtwMm: REFERENCE_WTW_MM,
-      dacMm: params.dacMm,
-      dacFromReference: false,
-    };
-  }
+  const wtwFromReference = params.wtwMm == null || !(params.wtwMm > 0);
+  const dacFromReference = params.dacMm == null || !(params.dacMm > 0);
   return {
-    wtwMm: REFERENCE_WTW_MM,
-    dacMm: REFERENCE_DAC_MM,
-    dacFromReference: true,
+    wtwMm: wtwFromReference ? REFERENCE_WTW_MM : params.wtwMm!,
+    dacMm: dacFromReference ? REFERENCE_DAC_MM : params.dacMm!,
+    wtwFromReference,
+    dacFromReference,
   };
 }
 
@@ -106,7 +106,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "Le WtW est la distance limbe nasal – limbe temporal mesurée sur la photo, ramenée à 11,71 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T (bord pupillaire nasal → Purkinje). DAC : saisie clinicien, sinon 3,4 mm. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
+    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -171,6 +171,7 @@ export type EyeMeasurement =
       pxPerMm: number;
       wtwMm: number;
       dacMm: number;
+      wtwFromReference: boolean;
       dacFromReference: boolean;
       pupilDiameterMm: number;
       correctopieMm: number;
@@ -262,7 +263,7 @@ export function measureEye(
   }
 
   const scale = resolveScale(params);
-  if (scale.dacMm <= 0) {
+  if (scale.wtwMm <= 0 || scale.dacMm <= 0) {
     return { status: "invalid", reason: "Paramètres d’échelle invalides." };
   }
 
@@ -329,6 +330,7 @@ export function measureEye(
     pxPerMm,
     wtwMm: scale.wtwMm,
     dacMm: scale.dacMm,
+    wtwFromReference: scale.wtwFromReference,
     dacFromReference: scale.dacFromReference,
     pupilDiameterMm: computation.pupilDiameterMm,
     correctopieMm: computation.correctopieMm,

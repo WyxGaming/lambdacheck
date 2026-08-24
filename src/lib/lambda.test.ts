@@ -118,15 +118,18 @@ test("mesure incomplète tant que le reflet manque", () => {
   assert.deepEqual(measurement.missing, ["cornealReflex"]);
 });
 
-test("DAC inconnue → valeur de référence 3,4 mm", () => {
-  const scale = resolveScale({ dacMm: null });
-  assert.equal(scale.dacMm, REFERENCE_DAC_MM);
-  assert.equal(scale.dacFromReference, true);
+test("WtW et DAC inconnus → valeurs de référence 11,71 mm et 3,4 mm", () => {
+  const scale = resolveScale({ wtwMm: null, dacMm: null });
   assert.equal(scale.wtwMm, REFERENCE_WTW_MM);
+  assert.equal(scale.dacMm, REFERENCE_DAC_MM);
+  assert.equal(scale.wtwFromReference, true);
+  assert.equal(scale.dacFromReference, true);
 });
 
-test("DAC saisie par le clinicien est utilisée telle quelle", () => {
-  const scale = resolveScale({ dacMm: 3.1 });
+test("WtW et DAC saisis par le clinicien sont utilisés tels quels", () => {
+  const scale = resolveScale({ wtwMm: 12, dacMm: 3.1 });
+  assert.equal(scale.wtwMm, 12);
   assert.equal(scale.dacMm, 3.1);
+  assert.equal(scale.wtwFromReference, false);
   assert.equal(scale.dacFromReference, false);
 });

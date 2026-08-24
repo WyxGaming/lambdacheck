@@ -90,7 +90,7 @@ function Protocol() {
     },
     {
       title: "Marquer, puis lire λ",
-      body: "Posez limbe nasal et temporal (WtW photographique), les deux bords pupillaires, puis le reflet de Purkinje. Indiquez la DAC si vous la connaissez ; sinon la référence 3,4 mm est utilisée.",
+      body: "Posez limbe nasal et temporal, les deux bords pupillaires, puis le reflet de Purkinje. Indiquez le WtW et la DAC s’ils sont connus ; sinon 11,71 mm et 3,4 mm.",
     },
   ];
 
@@ -146,8 +146,9 @@ function FormulaSection() {
             <div>
               <dt className="text-muted-foreground">WtW</dt>
               <dd>
-                Mesuré sur la photo entre limbe nasal et limbe temporal.
-                L’échelle millimétrique de référence est 11,71 mm.
+                Demandé au clinicien. Si le diamètre cornéen n’est pas connu, la
+                valeur de référence 11,71 mm est utilisée. Sur la photo, il
+                correspond à limbe nasal – limbe temporal.
               </dd>
             </div>
             <div>

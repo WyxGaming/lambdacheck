@@ -531,9 +531,10 @@ function EyeResult({
           </dd>
         </div>
         <div>
-          <dt>WtW (photo)</dt>
+          <dt>WtW</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.wtwMm)}
+            {measurement.wtwFromReference ? " (référence)" : " (saisie)"}
           </dd>
         </div>
         <div>
@@ -586,13 +587,33 @@ function ParamsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Chambre antérieure</CardTitle>
+        <CardTitle>Biométrie</CardTitle>
         <CardDescription>
-          Le diamètre cornéen (WtW) est mesuré sur la photo, entre limbe nasal
-          et limbe temporal. Seule la DAC est demandée au clinicien.
+          Saisissez le diamètre cornéen (WtW) et la profondeur de chambre
+          antérieure (DAC) s’ils sont connus. Sinon les valeurs de référence
+          KappaView sont utilisées.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="wtw">WtW — diamètre cornéen (mm)</Label>
+          <Input
+            id="wtw"
+            type="number"
+            inputMode="decimal"
+            min={9}
+            max={14}
+            step={0.01}
+            placeholder={`${REFERENCE_WTW_MM.toLocaleString("fr-FR")} si inconnu`}
+            value={params.wtwMm ?? ""}
+            onChange={(event) =>
+              onChange({
+                ...params,
+                wtwMm: parseOptionalMm(event.target.value),
+              })
+            }
+          />
+        </div>
         <div className="grid gap-1.5">
           <Label htmlFor="dac">DAC — profondeur de chambre antérieure (mm)</Label>
           <Input
@@ -604,21 +625,18 @@ function ParamsCard({
             step={0.05}
             placeholder={`${REFERENCE_DAC_MM.toLocaleString("fr-FR")} si inconnue`}
             value={params.dacMm ?? ""}
-            onChange={(event) => {
-              const raw = event.target.value.trim().replace(",", ".");
-              if (raw === "") {
-                onChange({ dacMm: null });
-                return;
-              }
-              const value = Number(raw);
-              onChange({ dacMm: Number.isFinite(value) ? value : null });
-            }}
+            onChange={(event) =>
+              onChange({
+                ...params,
+                dacMm: parseOptionalMm(event.target.value),
+              })
+            }
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Si la DAC n’est pas connue, laissez le champ vide : la valeur de
-          référence ({REFERENCE_DAC_MM.toLocaleString("fr-FR")} mm) est utilisée.
-          L’échelle du WtW photographique est {REFERENCE_WTW_MM.toLocaleString("fr-FR")} mm.
+          Champs vides : WtW = {REFERENCE_WTW_MM.toLocaleString("fr-FR")} mm, DAC ={" "}
+          {REFERENCE_DAC_MM.toLocaleString("fr-FR")} mm. Sur la photo, le WtW
+          correspond à la distance limbe nasal – limbe temporal.
         </p>
       </CardContent>
     </Card>
@@ -636,11 +654,14 @@ function buildReport(
   const dacLabel = scale.dacFromReference
     ? `${formatMm(scale.dacMm)} (référence)`
     : `${formatMm(scale.dacMm)} (saisie)`;
+  const wtwLabel = scale.wtwFromReference
+    ? `${formatMm(scale.wtwMm)} (référence)`
+    : `${formatMm(scale.wtwMm)} (saisie)`;
   const lines = [
     "LambdaCOR — angle lambda photographique",
     date,
     patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
-    `WtW mesuré sur photo (échelle ${formatMm(scale.wtwMm)}) · DAC ${dacLabel}`,
+    `WtW ${wtwLabel} · DAC ${dacLabel}`,
     `Formule : ${FORMULA.expression} (${FORMULA.version})`,
     "",
     formatEyeLine("OD", od),
@@ -654,6 +675,13 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
     return `${eye} : mesure incomplète`;
   }
   return `${eye} : λ = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · Ø pupille = ${formatMm(measurement.pupilDiameterMm)} · correctopie = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+}
+
+function parseOptionalMm(raw: string): number | null {
+  const trimmed = raw.trim().replace(",", ".");
+  if (trimmed === "") return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
 }
 
 async function fileToObjectUrl(file: File): Promise<string> {
