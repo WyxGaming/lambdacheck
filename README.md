@@ -23,7 +23,7 @@ npm run build
 1. Photographiez chaque œil en vision monoculaire (œil controlatéral occlus), patient de face, regard sur l’objectif, limbe entier visible, reflet net.
 2. Importez OD puis OS, ou chargez l’exemple pédagogique.
 3. Placez cinq curseurs : limbe nasal, limbe temporal, bord pupillaire nasal, bord pupillaire temporal, reflet de Purkinje.
-4. Saisissez le diamètre cornéen (WtW) et la profondeur de chambre antérieure (DAC) s’ils sont connus. Sinon : 11,71 mm et 3,4 mm.
+4. Le WtW est mesuré sur la photo (limbe nasal → limbe temporal). Indiquez la DAC si vous la connaissez ; sinon la référence 3,4 mm est utilisée.
 5. Lisez λ, le diamètre pupillaire et la correctopie, puis copiez le compte-rendu.
 
 ## Formule (KappaView4)

@@ -12,16 +12,39 @@ export type Point = { x: number; y: number };
 export type EyeLandmarks = Partial<Record<LandmarkId, Point>>;
 
 export type FormulaParams = {
-  /** Diamètre cornéen blanc à blanc (WtW), en mm. */
-  wtwMm: number;
-  /** Profondeur de la chambre antérieure (DAC), en mm. */
-  dacMm: number;
+  /** DAC saisie par le clinicien, en mm. Null si inconnue → valeur de référence. */
+  dacMm: number | null;
 };
 
+/** Échelle millimétrique du WtW mesuré sur la photo (limbe N–T). */
+export const REFERENCE_WTW_MM = 11.71;
+/** DAC de référence si le clinicien n’a pas la biométrie. */
+export const REFERENCE_DAC_MM = 3.4;
+
 export const DEFAULT_PARAMS: FormulaParams = {
-  wtwMm: 11.71,
-  dacMm: 3.4,
+  dacMm: null,
 };
+
+export type ResolvedScale = {
+  wtwMm: number;
+  dacMm: number;
+  dacFromReference: boolean;
+};
+
+export function resolveScale(params: FormulaParams): ResolvedScale {
+  if (params.dacMm != null && params.dacMm > 0) {
+    return {
+      wtwMm: REFERENCE_WTW_MM,
+      dacMm: params.dacMm,
+      dacFromReference: false,
+    };
+  }
+  return {
+    wtwMm: REFERENCE_WTW_MM,
+    dacMm: REFERENCE_DAC_MM,
+    dacFromReference: true,
+  };
+}
 
 /** Facteur d’apparence pupillaire de KappaView. */
 export const PUPIL_APPARENT_FACTOR = 0.86;
@@ -83,7 +106,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T, avec NPPI la distance du bord pupillaire nasal au reflet de Purkinje. DAC : profondeur de chambre antérieure. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
+    "Le WtW est la distance limbe nasal – limbe temporal mesurée sur la photo, ramenée à 11,71 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T (bord pupillaire nasal → Purkinje). DAC : saisie clinicien, sinon 3,4 mm. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -115,18 +138,18 @@ export type KappaViewResult = {
  */
 export function computeAngleLambda(
   pixels: KappaViewPixels,
-  params: FormulaParams,
+  scale: { wtwMm: number; dacMm: number },
 ): KappaViewResult {
   const ratioLambda = pixels.nppi / pixels.pupilNptp;
   const pupilDiameterMm =
-    ((params.wtwMm * pixels.pupilNptp) / pixels.corneeNltl) *
+    ((scale.wtwMm * pixels.pupilNptp) / pixels.corneeNltl) *
     PUPIL_APPARENT_FACTOR;
   const correctopieMm =
     (pixels.corneeNltl / 2 - (pixels.pupilNptp / 2 + pixels.irisNasal)) *
-    (params.wtwMm / pixels.corneeNltl);
+    (scale.wtwMm / pixels.corneeNltl);
   const reflexOffsetMm = pupilDiameterMm / 2 - ratioLambda * pupilDiameterMm;
   const angleLambdaDeg =
-    ((Math.atan(reflexOffsetMm / params.dacMm) * 180) / Math.PI) * LAMBDA_GAIN +
+    ((Math.atan(reflexOffsetMm / scale.dacMm) * 180) / Math.PI) * LAMBDA_GAIN +
     LAMBDA_OFFSET;
 
   return {
@@ -146,6 +169,9 @@ export type EyeMeasurement =
       status: "ok";
       eye: EyeSide;
       pxPerMm: number;
+      wtwMm: number;
+      dacMm: number;
+      dacFromReference: boolean;
       pupilDiameterMm: number;
       correctopieMm: number;
       ratioLambda: number;
@@ -235,7 +261,8 @@ export function measureEye(
     return { status: "incomplete", missing };
   }
 
-  if (params.wtwMm <= 0 || params.dacMm <= 0) {
+  const scale = resolveScale(params);
+  if (scale.dacMm <= 0) {
     return { status: "invalid", reason: "Paramètres d’échelle invalides." };
   }
 
@@ -260,8 +287,8 @@ export function measureEye(
     };
   }
 
-  const computation = computeAngleLambda(pixels, params);
-  const pxPerMm = pixels.corneeNltl / params.wtwMm;
+  const computation = computeAngleLambda(pixels, scale);
+  const pxPerMm = pixels.corneeNltl / scale.wtwMm;
 
   const centredThresholdMm = 0.04;
   const laterality =
@@ -288,7 +315,7 @@ export function measureEye(
       "Le reflet de Purkinje est en dehors de la pupille. Vérifiez PN, PT et P1.",
     );
   }
-  if (computation.pupilDiameterMm >= params.wtwMm) {
+  if (computation.pupilDiameterMm >= scale.wtwMm) {
     warnings.push(
       "Le diamètre pupillaire dépasse le diamètre cornéen : vérifiez les curseurs.",
     );
@@ -300,6 +327,9 @@ export function measureEye(
     status: "ok",
     eye,
     pxPerMm,
+    wtwMm: scale.wtwMm,
+    dacMm: scale.dacMm,
+    dacFromReference: scale.dacFromReference,
     pupilDiameterMm: computation.pupilDiameterMm,
     correctopieMm: computation.correctopieMm,
     ratioLambda: computation.ratioLambda,

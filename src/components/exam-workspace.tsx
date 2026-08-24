@@ -43,6 +43,9 @@ import {
   lateralityLabel,
   measureEye,
   nextLandmark,
+  REFERENCE_DAC_MM,
+  REFERENCE_WTW_MM,
+  resolveScale,
 } from "@/lib/lambda";
 import { createSyntheticEye } from "@/lib/synthetic-eye";
 import { cn } from "@/lib/utils";
@@ -532,6 +535,19 @@ function EyeResult({
       </p>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <div>
+          <dt>DAC</dt>
+          <dd className="text-foreground tabular-nums">
+            {formatMm(measurement.dacMm)}
+            {measurement.dacFromReference ? " (référence)" : " (saisie)"}
+          </dd>
+        </div>
+        <div>
+          <dt>WtW (photo)</dt>
+          <dd className="text-foreground tabular-nums">
+            {formatMm(measurement.wtwMm)}
+          </dd>
+        </div>
+        <div>
           <dt>Diamètre pupillaire</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.pupilDiameterMm)}
@@ -581,31 +597,13 @@ function ParamsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Paramètres biométriques</CardTitle>
+        <CardTitle>Chambre antérieure</CardTitle>
         <CardDescription>
-          Diamètre cornéen (WtW) et profondeur de chambre antérieure (DAC),
-          comme dans KappaView.
+          Le diamètre cornéen (WtW) est mesuré sur la photo, entre limbe nasal
+          et limbe temporal. Seule la DAC est demandée au clinicien.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="grid gap-1.5">
-          <Label htmlFor="wtw">WtW — diamètre cornéen (mm)</Label>
-          <Input
-            id="wtw"
-            type="number"
-            inputMode="decimal"
-            min={9}
-            max={14}
-            step={0.01}
-            value={params.wtwMm}
-            onChange={(event) =>
-              onChange({
-                ...params,
-                wtwMm: Number(event.target.value),
-              })
-            }
-          />
-        </div>
         <div className="grid gap-1.5">
           <Label htmlFor="dac">DAC — profondeur de chambre antérieure (mm)</Label>
           <Input
@@ -615,17 +613,23 @@ function ParamsCard({
             min={1.5}
             max={5.5}
             step={0.05}
-            value={params.dacMm}
-            onChange={(event) =>
-              onChange({
-                ...params,
-                dacMm: Number(event.target.value),
-              })
-            }
+            placeholder={`${REFERENCE_DAC_MM.toLocaleString("fr-FR")} si inconnue`}
+            value={params.dacMm ?? ""}
+            onChange={(event) => {
+              const raw = event.target.value.trim().replace(",", ".");
+              if (raw === "") {
+                onChange({ dacMm: null });
+                return;
+              }
+              const value = Number(raw);
+              onChange({ dacMm: Number.isFinite(value) ? value : null });
+            }}
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Valeurs par défaut si inconnues : WtW 11,71 mm, DAC 3,4 mm.
+          Si la DAC n’est pas connue, laissez le champ vide : la valeur de
+          référence ({REFERENCE_DAC_MM.toLocaleString("fr-FR")} mm) est utilisée.
+          L’échelle du WtW photographique est {REFERENCE_WTW_MM.toLocaleString("fr-FR")} mm.
         </p>
       </CardContent>
     </Card>
@@ -639,11 +643,15 @@ function buildReport(
   os: EyeMeasurement,
 ): string {
   const date = new Date().toLocaleString("fr-FR");
+  const scale = resolveScale(params);
+  const dacLabel = scale.dacFromReference
+    ? `${formatMm(scale.dacMm)} (référence)`
+    : `${formatMm(scale.dacMm)} (saisie)`;
   const lines = [
     "LambdaCOR — angle lambda photographique",
     date,
     patientRef ? `Patient : ${patientRef}` : "Patient : non renseigné",
-    `Biométrie : WtW ${params.wtwMm.toLocaleString("fr-FR")} mm · DAC ${params.dacMm.toLocaleString("fr-FR")} mm`,
+    `WtW mesuré sur photo (échelle ${formatMm(scale.wtwMm)}) · DAC ${dacLabel}`,
     `Formule : ${FORMULA.expression} (${FORMULA.version})`,
     "",
     formatEyeLine("OD", od),

@@ -90,7 +90,7 @@ function Protocol() {
     },
     {
       title: "Marquer, puis lire λ",
-      body: "Posez limbe nasal et temporal, les deux bords pupillaires, puis le reflet de Purkinje. Saisissez WtW et DAC s’ils sont connus, sinon les valeurs par défaut de KappaView s’appliquent.",
+      body: "Posez limbe nasal et temporal (WtW photographique), les deux bords pupillaires, puis le reflet de Purkinje. Indiquez la DAC si vous la connaissez ; sinon la référence 3,4 mm est utilisée.",
     },
   ];
 
@@ -144,23 +144,24 @@ function FormulaSection() {
           </p>
           <dl className="mt-6 grid gap-3 text-sm">
             <div>
+              <dt className="text-muted-foreground">WtW</dt>
+              <dd>
+                Mesuré sur la photo entre limbe nasal et limbe temporal.
+                L’échelle millimétrique de référence est 11,71 mm.
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">DAC</dt>
+              <dd>
+                Demandée au clinicien. Si elle n’est pas connue, la valeur de
+                référence 3,4 mm est utilisée.
+              </dd>
+            </div>
+            <div>
               <dt className="text-muted-foreground">Diamètre pupillaire</dt>
               <dd>
                 Øp = 0,86 × WtW × (distance pupille nasale–temporale / distance
                 cornée nasale–temporale), en mm.
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Correctopie</dt>
-              <dd>
-                Excentration du centre pupillaire par rapport au centre cornéen,
-                positive vers le nasal.
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">Valeurs par défaut</dt>
-              <dd>
-                WtW = 11,71 mm, DAC = 3,4 mm si la biométrie n’est pas saisie.
               </dd>
             </div>
           </dl>
@@ -169,8 +170,8 @@ function FormulaSection() {
           <p className="text-sm font-medium">Grandeurs issues de la photo</p>
           <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
             <li>
-              <span className="font-medium text-foreground">cornee_NLTL</span> —
-              limbe nasal → limbe temporal
+              <span className="font-medium text-foreground">cornee_NLTL (WtW)</span>{" "}
+              — limbe nasal → limbe temporal
             </li>
             <li>
               <span className="font-medium text-foreground">pupil_NPTP</span> —

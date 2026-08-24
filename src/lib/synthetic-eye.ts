@@ -4,6 +4,7 @@ import {
   type FormulaParams,
   measureEye,
   nasalDirectionX,
+  REFERENCE_WTW_MM,
 } from "@/lib/lambda";
 
 export const DEMO_DISPLACEMENT_MM = 0.45;
@@ -32,7 +33,7 @@ export function createSyntheticEye(
   const hvidPx = 430;
   const irisR = hvidPx / 2;
   const pupilR = irisR * 0.36;
-  const pxPerMm = hvidPx / params.wtwMm;
+  const pxPerMm = hvidPx / REFERENCE_WTW_MM;
   const nasalX = nasalDirectionX(eye);
   const reflexX = cx + nasalX * DEMO_DISPLACEMENT_MM * pxPerMm;
   const reflexY = cy - 2;

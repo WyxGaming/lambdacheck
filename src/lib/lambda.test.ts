@@ -6,9 +6,12 @@ import {
   LAMBDA_GAIN,
   LAMBDA_OFFSET,
   PUPIL_APPARENT_FACTOR,
+  REFERENCE_DAC_MM,
+  REFERENCE_WTW_MM,
   computeAngleLambda,
   extractKappaViewPixels,
   measureEye,
+  resolveScale,
 } from "./lambda.ts";
 
 test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python", () => {
@@ -18,7 +21,10 @@ test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python",
     nppi: 60,
     irisNasal: 125,
   };
-  const result = computeAngleLambda(pixels, DEFAULT_PARAMS);
+  const result = computeAngleLambda(pixels, {
+    wtwMm: REFERENCE_WTW_MM,
+    dacMm: REFERENCE_DAC_MM,
+  });
 
   const ratio = 60 / 150;
   const diam = ((11.71 * 150) / 400) * PUPIL_APPARENT_FACTOR;
@@ -110,4 +116,17 @@ test("mesure incomplète tant que le reflet manque", () => {
   assert.equal(measurement.status, "incomplete");
   if (measurement.status !== "incomplete") return;
   assert.deepEqual(measurement.missing, ["cornealReflex"]);
+});
+
+test("DAC inconnue → valeur de référence 3,4 mm", () => {
+  const scale = resolveScale({ dacMm: null });
+  assert.equal(scale.dacMm, REFERENCE_DAC_MM);
+  assert.equal(scale.dacFromReference, true);
+  assert.equal(scale.wtwMm, REFERENCE_WTW_MM);
+});
+
+test("DAC saisie par le clinicien est utilisée telle quelle", () => {
+  const scale = resolveScale({ dacMm: 3.1 });
+  assert.equal(scale.dacMm, 3.1);
+  assert.equal(scale.dacFromReference, false);
 });
