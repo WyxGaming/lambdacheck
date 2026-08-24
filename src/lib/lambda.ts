@@ -219,6 +219,7 @@ export type Laterality =
 export type AxisMeasurement = {
   angleLambdaDeg: number;
   angleLambdaAbsDeg: number;
+  angleLambdaMm: number;
   pupilDiameterMm: number;
   correctopieMm: number;
   ratioLambda: number;
@@ -251,6 +252,7 @@ export type EyeMeasurement =
       correctopieLaterality: Laterality;
       angleLambdaDeg: number;
       angleLambdaAbsDeg: number;
+      angleLambdaMm: number;
       prismDiopters: number;
       formulaId: string;
       formulaExpression: string;
@@ -616,7 +618,7 @@ export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels 
 
 function axisFromComputation(
   computation: KappaViewResult,
-  wtwMm: number,
+  scale: { wtwMm: number; dacMm: number },
   pixels: KappaViewPixels,
   orientation: "horizontal" | "vertical",
 ): AxisMeasurement | { status: "invalid"; reason: string } {
@@ -670,7 +672,7 @@ function axisFromComputation(
         : "Le reflet de Purkinje est en dehors de la pupille (axe vertical). Vérifiez PS, PI et P1.",
     );
   }
-  if (computation.pupilDiameterMm >= wtwMm) {
+  if (computation.pupilDiameterMm >= scale.wtwMm) {
     warnings.push(
       orientation === "horizontal"
         ? "Le diamètre pupillaire horizontal dépasse le diamètre cornéen."
@@ -682,6 +684,7 @@ function axisFromComputation(
   return {
     angleLambdaDeg: computation.angleLambdaDeg,
     angleLambdaAbsDeg: Math.abs(computation.angleLambdaDeg),
+    angleLambdaMm: scale.dacMm * Math.tan(rad),
     pupilDiameterMm: computation.pupilDiameterMm,
     correctopieMm: computation.correctopieMm,
     ratioLambda: computation.ratioLambda,
@@ -717,7 +720,7 @@ export function measureEye(
   if (hPixels) {
     const result = axisFromComputation(
       computeAngleLambda(hPixels, scale),
-      scale.wtwMm,
+      scale,
       hPixels,
       "horizontal",
     );
@@ -730,7 +733,7 @@ export function measureEye(
   if (vPixels) {
     const result = axisFromComputation(
       computeAngleLambda(vPixels, scale),
-      scale.wtwMm,
+      scale,
       vPixels,
       "vertical",
     );
@@ -791,6 +794,7 @@ export function measureEye(
     correctopieLaterality: horizontal.correctopieLaterality,
     angleLambdaDeg: horizontal.angleLambdaDeg,
     angleLambdaAbsDeg: horizontal.angleLambdaAbsDeg,
+    angleLambdaMm: horizontal.angleLambdaMm,
     prismDiopters: horizontal.prismDiopters,
     formulaId: FORMULA.id,
     formulaExpression: FORMULA.expression,
@@ -798,11 +802,20 @@ export function measureEye(
   };
 }
 
-export function formatMm(value: number): string {
-  return `${value.toLocaleString("fr-FR", {
+export function formatMm(value: number, signed = false): string {
+  if (!signed) {
+    return `${value.toLocaleString("fr-FR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })} mm`;
+  }
+  const abs = Math.abs(value);
+  const body = abs.toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })} mm`;
+  });
+  if (Math.abs(value) < 0.005) return `${body} mm`;
+  return `${value > 0 ? "+" : "−"}${body} mm`;
 }
 
 export function formatDeg(value: number, signed = false): string {

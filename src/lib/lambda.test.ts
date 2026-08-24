@@ -63,6 +63,10 @@ test("OD : reflet nasal au centre pupillaire → λ positif", () => {
   if (measurement.status !== "ok") return;
   assert.equal(measurement.laterality, "nasal");
   assert.ok(measurement.angleLambdaDeg > 0);
+  const expectedMm =
+    measurement.dacMm *
+    Math.tan((measurement.angleLambdaDeg * Math.PI) / 180);
+  assert.equal(measurement.angleLambdaMm.toFixed(6), expectedMm.toFixed(6));
 });
 
 test("OS : reflet nasal au centre pupillaire → λ positif", () => {
@@ -191,6 +195,13 @@ test("λ vertical : reflet supérieur au centre pupillaire → λv positif", () 
   assert.ok(measurement.vertical);
   assert.equal(measurement.vertical!.laterality, "superior");
   assert.ok(measurement.vertical!.angleLambdaDeg > 0);
+  const expectedVMm =
+    measurement.dacMm *
+    Math.tan((measurement.vertical!.angleLambdaDeg * Math.PI) / 180);
+  assert.equal(
+    measurement.vertical!.angleLambdaMm.toFixed(6),
+    expectedVMm.toFixed(6),
+  );
 });
 
 test("mesure horizontale possible avant d’avoir fini le vertical", () => {

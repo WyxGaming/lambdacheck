@@ -303,10 +303,11 @@ function DemoHint({
   return (
     <p className="text-xs text-muted-foreground">
       Exemple pédagogique : si le marquage est exact, λh ≈{" "}
-      {formatDeg(expected.angleLambdaDeg, true)} (
+      {formatDeg(expected.angleLambdaDeg, true)} /{" "}
+      {formatMm(expected.angleLambdaMm, true)} (
       {lateralityLabel(expected.laterality)})
       {expected.vertical
-        ? ` · λv ≈ ${formatDeg(expected.vertical.angleLambdaDeg, true)} (${lateralityLabel(expected.vertical.laterality)})`
+        ? ` · λv ≈ ${formatDeg(expected.vertical.angleLambdaDeg, true)} / ${formatMm(expected.vertical.angleLambdaMm, true)} (${lateralityLabel(expected.vertical.laterality)})`
         : ""}
       .
     </p>
@@ -520,9 +521,14 @@ function EyeResult({
       <div>
         <p className="text-[11px] text-muted-foreground">λ horizontal</p>
         <div className="flex items-baseline justify-between gap-3">
-          <p className="font-heading text-3xl tracking-tight tabular-nums">
-            {formatDeg(measurement.angleLambdaDeg, true)}
-          </p>
+          <div>
+            <p className="font-heading text-3xl tracking-tight tabular-nums">
+              {formatDeg(measurement.angleLambdaDeg, true)}
+            </p>
+            <p className="text-sm tabular-nums text-muted-foreground">
+              {formatMm(measurement.angleLambdaMm, true)}
+            </p>
+          </div>
           <Badge
             variant={measurement.laterality === "temporal" ? "destructive" : "secondary"}
           >
@@ -534,9 +540,14 @@ function EyeResult({
         <p className="text-[11px] text-muted-foreground">λ vertical</p>
         {measurement.vertical ? (
           <div className="flex items-baseline justify-between gap-3">
-            <p className="font-heading text-3xl tracking-tight tabular-nums">
-              {formatDeg(measurement.vertical.angleLambdaDeg, true)}
-            </p>
+            <div>
+              <p className="font-heading text-3xl tracking-tight tabular-nums">
+                {formatDeg(measurement.vertical.angleLambdaDeg, true)}
+              </p>
+              <p className="text-sm tabular-nums text-muted-foreground">
+                {formatMm(measurement.vertical.angleLambdaMm, true)}
+              </p>
+            </div>
             <Badge
               variant={
                 measurement.vertical.laterality === "inferior"
@@ -712,11 +723,11 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} (${lateralityLabel(measurement.laterality)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
   if (!measurement.vertical) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} (${lateralityLabel(measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {
