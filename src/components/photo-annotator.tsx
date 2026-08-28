@@ -684,7 +684,7 @@ export function PhotoAnnotator({
           landmarks.limbusTemporal &&
           !(landmarks.limbusSuperior && landmarks.limbusInferior) && (
           <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 rounded-md bg-black/55 px-2 py-1.5 text-center text-[11px] leading-snug text-white/90 backdrop-blur-sm">
-            Glissez les poignées ou le contour pour coller l’ellipse au limbe.
+            Glissez LS et LI séparément pour coller l’ellipse au limbe.
             Le centre déplace l’ensemble.
           </p>
         )}
@@ -831,24 +831,32 @@ function drawGuides(
 
   if (ellipse) {
     const center = imageToCss({ x: ellipse.cx, y: ellipse.cy }, layout);
-    ctx.beginPath();
-    ctx.ellipse(
-      center.x,
-      center.y,
-      ellipse.rx * layout.scale,
-      ellipse.ry * layout.scale,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    const rx = ellipse.rx * layout.scale;
+    const ryTop = ellipse.ryTop * layout.scale;
+    const ryBottom = ellipse.ryBottom * layout.scale;
+    const topPlaced = Boolean(landmarks.limbusSuperior);
+    const bottomPlaced = Boolean(landmarks.limbusInferior);
+
     ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
-    ctx.setLineDash(landmarks.limbusSuperior && landmarks.limbusInferior ? [] : [7, 5]);
     ctx.lineWidth = 2.25;
+    ctx.beginPath();
+    ctx.ellipse(center.x, center.y, rx, ryTop, 0, Math.PI, Math.PI * 2);
+    ctx.setLineDash(topPlaced ? [] : [7, 5]);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(center.x, center.y, rx, ryBottom, 0, 0, Math.PI);
+    ctx.setLineDash(bottomPlaced ? [] : [7, 5]);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    const top = imageToCss({ x: ellipse.cx, y: ellipse.cy - ellipse.ry }, layout);
-    const bottom = imageToCss({ x: ellipse.cx, y: ellipse.cy + ellipse.ry }, layout);
+    const top = imageToCss(
+      { x: ellipse.cx, y: ellipse.cy - ellipse.ryTop },
+      layout,
+    );
+    const bottom = imageToCss(
+      { x: ellipse.cx, y: ellipse.cy + ellipse.ryBottom },
+      layout,
+    );
     ctx.beginPath();
     ctx.moveTo(top.x, top.y);
     ctx.lineTo(bottom.x, bottom.y);
@@ -891,8 +899,19 @@ function drawGuides(
     ctx.stroke();
   }
 
-  if (pupil) {
+    if (pupil) {
     const p = imageToCss(pupil, layout);
+    const horizLeft = imageToCss({ x: 0, y: pupil.y }, layout);
+    const horizRight = imageToCss({ x: imageWidth, y: pupil.y }, layout);
+    ctx.beginPath();
+    ctx.moveTo(horizLeft.x, horizLeft.y);
+    ctx.lineTo(horizRight.x, horizRight.y);
+    ctx.strokeStyle = "rgba(253, 230, 138, 0.35)";
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.setLineDash([]);
+
     ctx.beginPath();
     ctx.moveTo(p.x - 8, p.y);
     ctx.lineTo(p.x + 8, p.y);

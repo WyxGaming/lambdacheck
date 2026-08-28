@@ -106,13 +106,13 @@ export const LANDMARK_META: Record<
   limbusSuperior: {
     label: "Limbe supérieur",
     short: "LS",
-    hint: "Bord supérieur de l’iris — ajuste l’ellipse du limbe",
+    hint: "Bord supérieur de l’iris — indépendant de LI",
     color: "#7c3aed",
   },
   limbusInferior: {
     label: "Limbe inférieur",
     short: "LI",
-    hint: "Bord inférieur de l’iris — ajuste l’ellipse du limbe",
+    hint: "Bord inférieur de l’iris — indépendant de LS",
     color: "#6d28d9",
   },
   pupilNasal: {
@@ -251,6 +251,8 @@ export type EyeMeasurement =
         elevationDeg: number;
         physiological: boolean;
       } | null;
+      /** Angle photo P1 / horizontale, depuis le centre pupillaire. + = supérieur. */
+      purkinjeElevationDeg: number | null;
       pupilDiameterMm: number;
       correctopieMm: number;
       ratioLambda: number;
@@ -272,6 +274,36 @@ export function elevationFromHorizontal(
   verticalDeg: number,
 ): number {
   return (Math.atan2(verticalDeg, Math.abs(horizontalDeg)) * 180) / Math.PI;
+}
+
+/**
+ * Intersection des droites a1→a2 et b1→b2, ou null si parallèles.
+ */
+export function lineIntersection(
+  a1: Point,
+  a2: Point,
+  b1: Point,
+  b2: Point,
+): Point | null {
+  const ax = a2.x - a1.x;
+  const ay = a2.y - a1.y;
+  const bx = b2.x - b1.x;
+  const by = b2.y - b1.y;
+  const denom = ax * by - ay * bx;
+  if (Math.abs(denom) < 1e-9) return null;
+  const t = ((b1.x - a1.x) * by - (b1.y - a1.y) * bx) / denom;
+  return { x: a1.x + t * ax, y: a1.y + t * ay };
+}
+
+/**
+ * Élévation du reflet : angle du vecteur centre→P1 par rapport à l’horizontale
+ * de l’image. Positif = supérieur, négatif = inférieur.
+ */
+export function purkinjeElevationDeg(origin: Point, reflex: Point): number {
+  return (
+    (Math.atan2(origin.y - reflex.y, Math.abs(reflex.x - origin.x)) * 180) /
+    Math.PI
+  );
 }
 
 export function obliqueLambda(
@@ -321,7 +353,8 @@ export type LimbusEllipse = {
   cx: number;
   cy: number;
   rx: number;
-  ry: number;
+  ryTop: number;
+  ryBottom: number;
 };
 
 export function limbusEllipse(landmarks: EyeLandmarks): LimbusEllipse | null {
@@ -333,9 +366,13 @@ export function limbusEllipse(landmarks: EyeLandmarks): LimbusEllipse | null {
   const rx = distance(nasal, temporal) / 2;
   const superior = landmarks.limbusSuperior;
   const inferior = landmarks.limbusInferior;
-  const ry =
-    superior && inferior ? Math.abs(inferior.y - superior.y) / 2 : rx;
-  return { cx, cy, rx, ry };
+  const ryTop = superior ? Math.max(cy - superior.y, 1) : rx;
+  const ryBottom = inferior ? Math.max(inferior.y - cy, 1) : rx;
+  return { cx, cy, rx, ryTop, ryBottom };
+}
+
+function ellipseRyForY(ellipse: LimbusEllipse, y: number): number {
+  return y <= ellipse.cy ? ellipse.ryTop : ellipse.ryBottom;
 }
 
 export type EllipseHandleId =
@@ -359,11 +396,11 @@ export function limbusEllipseHandles(
     { id: rightId, point: { x: ellipse.cx + ellipse.rx, y: ellipse.cy } },
     {
       id: "limbusSuperior",
-      point: { x: ellipse.cx, y: ellipse.cy - ellipse.ry },
+      point: { x: ellipse.cx, y: ellipse.cy - ellipse.ryTop },
     },
     {
       id: "limbusInferior",
-      point: { x: ellipse.cx, y: ellipse.cy + ellipse.ry },
+      point: { x: ellipse.cx, y: ellipse.cy + ellipse.ryBottom },
     },
   ];
 }
@@ -391,14 +428,17 @@ export function distanceToEllipse(
   point: Point,
   ellipse: LimbusEllipse,
 ): number {
-  if (ellipse.rx < 1 || ellipse.ry < 1) return Number.POSITIVE_INFINITY;
+  if (ellipse.rx < 1 || ellipse.ryTop < 1 || ellipse.ryBottom < 1) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const ry = ellipseRyForY(ellipse, point.y);
   const nx = (point.x - ellipse.cx) / ellipse.rx;
-  const ny = (point.y - ellipse.cy) / ellipse.ry;
+  const ny = (point.y - ellipse.cy) / ry;
   const r = Math.hypot(nx, ny);
-  if (r < 1e-6) return Math.min(ellipse.rx, ellipse.ry);
+  if (r < 1e-6) return Math.min(ellipse.rx, ry);
   const theta = Math.atan2(ny, nx);
   const ex = ellipse.cx + ellipse.rx * Math.cos(theta);
-  const ey = ellipse.cy + ellipse.ry * Math.sin(theta);
+  const ey = ellipse.cy + ry * Math.sin(theta);
   return distance(point, { x: ex, y: ey });
 }
 
@@ -429,10 +469,10 @@ export function ghostHandles(
   const cornea = limbusEllipse(landmarks);
   if (cornea) {
     if (!landmarks.limbusSuperior) {
-      ghosts.limbusSuperior = { x: cornea.cx, y: cornea.cy - cornea.ry };
+      ghosts.limbusSuperior = { x: cornea.cx, y: cornea.cy - cornea.ryTop };
     }
     if (!landmarks.limbusInferior) {
-      ghosts.limbusInferior = { x: cornea.cx, y: cornea.cy + cornea.ry };
+      ghosts.limbusInferior = { x: cornea.cx, y: cornea.cy + cornea.ryBottom };
     }
   }
   return ghosts;
@@ -469,14 +509,7 @@ export function applyLandmarkConstraints(
     return syncVerticalLimbusToCornea(aligned);
   }
   if (id === "limbusSuperior" || id === "limbusInferior") {
-    return alignVerticalPair(
-      landmarks,
-      id,
-      "limbusSuperior",
-      "limbusInferior",
-      point,
-      corneaCenter(landmarks),
-    );
+    return placeIndependentVerticalLimbus(landmarks, id, point);
   }
   return { ...landmarks, [id]: point };
 }
@@ -507,36 +540,26 @@ function alignPair(
   return { ...landmarks, [id]: moved, [otherId]: otherMoved };
 }
 
+function placeIndependentVerticalLimbus(
+  landmarks: EyeLandmarks,
+  id: "limbusSuperior" | "limbusInferior",
+  point: Point,
+): EyeLandmarks {
+  const center = corneaCenter(landmarks);
+  const x = center?.x ?? point.x;
+  let y = point.y;
+  if (center) {
+    y =
+      id === "limbusSuperior"
+        ? Math.min(y, center.y - 2)
+        : Math.max(y, center.y + 2);
+  }
+  return { ...landmarks, [id]: { x, y } };
+}
+
 function corneaCenter(landmarks: EyeLandmarks): Point | null {
   if (!landmarks.limbusNasal || !landmarks.limbusTemporal) return null;
   return midpoint(landmarks.limbusNasal, landmarks.limbusTemporal);
-}
-
-function alignVerticalPair(
-  landmarks: EyeLandmarks,
-  id: LandmarkId,
-  superiorId: LandmarkId,
-  inferiorId: LandmarkId,
-  point: Point,
-  center: Point | null,
-): EyeLandmarks {
-  const otherId = id === superiorId ? inferiorId : superiorId;
-  if (center) {
-    const y = point.y;
-    return {
-      ...landmarks,
-      [superiorId]: { x: center.x, y: id === superiorId ? y : 2 * center.y - y },
-      [inferiorId]: { x: center.x, y: id === inferiorId ? y : 2 * center.y - y },
-    };
-  }
-  const other = landmarks[otherId];
-  if (!other) {
-    return { ...landmarks, [id]: point };
-  }
-  return {
-    ...landmarks,
-    [id]: { x: other.x, y: point.y },
-  };
 }
 
 function syncVerticalLimbusToCornea(landmarks: EyeLandmarks): EyeLandmarks {
@@ -544,29 +567,34 @@ function syncVerticalLimbusToCornea(landmarks: EyeLandmarks): EyeLandmarks {
   if (!center) return landmarks;
   const next = { ...landmarks };
   if (next.limbusSuperior) {
-    next.limbusSuperior = { x: center.x, y: next.limbusSuperior.y };
+    const ryTop = Math.max(center.y - next.limbusSuperior.y, 2);
+    next.limbusSuperior = { x: center.x, y: center.y - ryTop };
   }
   if (next.limbusInferior) {
-    next.limbusInferior = { x: center.x, y: next.limbusInferior.y };
-  }
-  if (next.limbusSuperior && next.limbusInferior) {
-    const ry = Math.abs(next.limbusInferior.y - next.limbusSuperior.y) / 2;
-    next.limbusSuperior = { x: center.x, y: center.y - ry };
-    next.limbusInferior = { x: center.x, y: center.y + ry };
+    const ryBottom = Math.max(next.limbusInferior.y - center.y, 2);
+    next.limbusInferior = { x: center.x, y: center.y + ryBottom };
   }
   return next;
 }
 
-/** Centre pupillaire : croisement des axes N–T et S–I s’ils existent. */
+/** Centre pupillaire : intersection des axes N–T et S–I. */
 export function derivedPupilCenter(landmarks: EyeLandmarks): Point | null {
+  const nasal = landmarks.pupilNasal;
+  const temporal = landmarks.pupilTemporal;
+  const superior = landmarks.pupilSuperior;
+  const inferior = landmarks.pupilInferior;
+  if (nasal && temporal && superior && inferior) {
+    return (
+      lineIntersection(nasal, temporal, superior, inferior) ?? {
+        x: midpoint(superior, inferior).x,
+        y: midpoint(nasal, temporal).y,
+      }
+    );
+  }
   const horizontal =
-    landmarks.pupilNasal && landmarks.pupilTemporal
-      ? midpoint(landmarks.pupilNasal, landmarks.pupilTemporal)
-      : null;
+    nasal && temporal ? midpoint(nasal, temporal) : null;
   const vertical =
-    landmarks.pupilSuperior && landmarks.pupilInferior
-      ? midpoint(landmarks.pupilSuperior, landmarks.pupilInferior)
-      : null;
+    superior && inferior ? midpoint(superior, inferior) : null;
   if (horizontal && vertical) {
     return { x: vertical.x, y: horizontal.y };
   }
@@ -626,12 +654,14 @@ export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels 
   const pupilSuperior = landmarks.pupilSuperior;
   const pupilInferior = landmarks.pupilInferior;
   const reflex = landmarks.cornealReflex;
+  const pupilCenter = derivedPupilCenter(landmarks);
   if (
     !limbusSuperior ||
     !limbusInferior ||
     !pupilSuperior ||
     !pupilInferior ||
-    !reflex
+    !reflex ||
+    !pupilCenter
   ) {
     return null;
   }
@@ -641,17 +671,26 @@ export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels 
     pupilNptp: projectedAlong(
       pupilSuperior,
       pupilInferior,
-      limbusSuperior,
-      limbusInferior,
+      pupilSuperior,
+      pupilInferior,
     ),
-    nppi: projectedAlong(pupilSuperior, reflex, limbusSuperior, limbusInferior),
+    nppi: projectedAlong(pupilSuperior, reflex, pupilSuperior, pupilInferior),
     irisNasal: projectedAlong(
       limbusSuperior,
       pupilSuperior,
-      limbusSuperior,
-      limbusInferior,
+      pupilSuperior,
+      pupilInferior,
     ),
   };
+}
+
+export function measurePurkinjeElevation(
+  landmarks: EyeLandmarks,
+): number | null {
+  const reflex = landmarks.cornealReflex;
+  const center = derivedPupilCenter(landmarks);
+  if (!reflex || !center) return null;
+  return purkinjeElevationDeg(center, reflex);
 }
 
 function axisFromComputation(
@@ -814,6 +853,11 @@ export function measureEye(
     ...horizontal.warnings,
     ...(vertical?.warnings ?? []),
   ];
+  const purkinjeElevation = measurePurkinjeElevation(landmarks);
+  const oblique = vertical ? obliqueLambda(horizontal, vertical) : null;
+  if (oblique && purkinjeElevation != null) {
+    oblique.elevationDeg = purkinjeElevation;
+  }
 
   return {
     status: "ok",
@@ -825,7 +869,8 @@ export function measureEye(
     dacFromReference: scale.dacFromReference,
     horizontal,
     vertical,
-    oblique: vertical ? obliqueLambda(horizontal, vertical) : null,
+    oblique,
+    purkinjeElevationDeg: purkinjeElevation,
     pupilDiameterMm: horizontal.pupilDiameterMm,
     correctopieMm: horizontal.correctopieMm,
     ratioLambda: horizontal.ratioLambda,
@@ -896,6 +941,11 @@ export function lateralityLabel(laterality: Laterality): string {
   if (laterality === "temporal") return "temporal";
   if (laterality === "superior") return "supérieur";
   return "inférieur";
+}
+
+export function elevationLaterality(deg: number): Laterality {
+  if (Math.abs(deg) < 0.05) return "centred";
+  return deg > 0 ? "superior" : "inferior";
 }
 
 export function obliqueLateralityLabel(

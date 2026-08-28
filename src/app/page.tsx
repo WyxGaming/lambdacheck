@@ -28,8 +28,9 @@ function Intro() {
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
           Ouvrez le site, importez une photo monoculaire, marquez l’axe
-          horizontal puis l’ellipse du limbe. λ horizontal, vertical, oblique
-          et l’élévation s’affichent. Aucun compte, aucune installation.
+          horizontal puis l’ellipse du limbe (LS et LI indépendants). λ
+          horizontal, vertical, oblique et l’élévation de P1 s’affichent.
+          Aucun compte, aucune installation.
         </p>
       </div>
       <details
@@ -49,9 +50,9 @@ function Intro() {
           </li>
           <li>
             Marquez limbe nasal et temporal, collez l’ellipse au limbe
-            (poignées, contour ou centre), posez les quatre bords pupillaires
-            un par un (la pupille n’est pas forcément ronde), puis le reflet.
-            WtW et DAC si connus, sinon 11,71 mm et 3,4 mm.
+            (LS et LI indépendants), posez les quatre bords pupillaires
+            un par un, puis le reflet. WtW et DAC si connus, sinon
+            11,71 mm et 3,4 mm.
           </li>
         </ol>
       </details>

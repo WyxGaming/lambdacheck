@@ -39,6 +39,7 @@ import {
   formatDeg,
   formatMm,
   lateralityLabel,
+  elevationLaterality,
   measureEye,
   nextLandmark,
   obliqueLateralityLabel,
@@ -168,8 +169,8 @@ export function ExamWorkspace() {
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
             Importez ou déposez une photo par œil. Posez LN et LT, puis
-            collez l’ellipse au limbe (poignées, contour ou centre) pour λ
-            vertical.
+            ajustez LS et LI séparément sur l’ellipse. λ vertical, λ
+            oblique et l’élévation de P1 partent du centre pupillaire.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -188,10 +189,10 @@ export function ExamWorkspace() {
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
                 Cliquez pour poser le curseur actif. Après LN et LT, des
-                poignées apparaissent sur l’ellipse du limbe : glissez-les,
-                le contour ou le centre. Les bords pupillaires (PN, PT, PS,
-                PI) se posent ensuite un par un : la pupille n’est pas
-                forcément ronde.
+                poignées apparaissent sur l’ellipse du limbe : LS et LI se
+                déplacent l’un sans l’autre. Les bords pupillaires (PN, PT,
+                PS, PI) se posent un par un. λv, λoblique et l’élévation
+                de P1 sont mesurés depuis le centre pupillaire.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -315,6 +316,9 @@ function DemoHint({
         : ""}
       {expected.oblique
         ? ` · λoblique ≈ ${formatDeg(expected.oblique.angleLambdaDeg)} / ${formatMm(expected.oblique.angleLambdaMm)}`
+        : ""}
+      {expected.purkinjeElevationDeg != null
+        ? ` · élévation P1 ≈ ${formatDeg(expected.purkinjeElevationDeg, true)}`
         : ""}
       .
     </p>
@@ -466,7 +470,8 @@ function ResultsCard({
         <CardTitle>Angle lambda</CardTitle>
         <CardDescription>
           {patientRef ? `Patient ${patientRef} · ` : null}
-          Un œil puis l’autre · λ horizontal, vertical et oblique.
+          Un œil puis l’autre · λ horizontal, vertical, oblique, et
+          élévation de P1 depuis le centre pupillaire.
           Physiologique : 0 à 3° en nasal, jusqu’à 0,60° ailleurs.
         </CardDescription>
       </CardHeader>
@@ -563,7 +568,7 @@ function EyeResult({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ajustez l’ellipse au limbe, puis posez PS et PI séparément.
+            Ajustez LS et LI séparément, puis posez PS et PI.
           </p>
         )}
       </div>
@@ -594,6 +599,23 @@ function EyeResult({
                 {physiologicalLabel(measurement.oblique.physiological)}
               </Badge>
             </div>
+          </div>
+        </div>
+      )}
+      {measurement.purkinjeElevationDeg != null && (
+        <div>
+          <p className="text-[11px] text-muted-foreground">
+            Élévation P1 · reflet / horizontale
+          </p>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="font-heading text-3xl tracking-tight tabular-nums">
+              {formatDeg(measurement.purkinjeElevationDeg, true)}
+            </p>
+            <Badge variant="secondary">
+              {lateralityLabel(
+                elevationLaterality(measurement.purkinjeElevationDeg),
+              )}
+            </Badge>
           </div>
         </div>
       )}
@@ -777,7 +799,7 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (!measurement.vertical || !measurement.oblique) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · élévation P1 = ${measurement.purkinjeElevationDeg != null ? `${formatDeg(measurement.purkinjeElevationDeg, true)} (${lateralityLabel(elevationLaterality(measurement.purkinjeElevationDeg))})` : "—"} · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {

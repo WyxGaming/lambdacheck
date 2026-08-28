@@ -15,12 +15,15 @@ import {
   distanceToEllipse,
   elevationFromHorizontal,
   extractKappaViewPixels,
+  extractVerticalPixels,
   ghostHandles,
   isPhysiologicalAngle,
   limbusEllipse,
   limbusEllipseHandles,
   measureEye,
   nearestEllipseHandle,
+  projectedAlong,
+  purkinjeElevationDeg,
   resolveScale,
   translateCornea,
   withAlignedLimbus,
@@ -221,12 +224,14 @@ test("λ vertical : reflet supérieur au centre pupillaire → λv positif", () 
       measurement.vertical!.angleLambdaMm,
     ).toFixed(6),
   );
+  assert.ok(measurement.purkinjeElevationDeg != null);
+  assert.equal(
+    measurement.purkinjeElevationDeg!.toFixed(6),
+    (90).toFixed(6),
+  );
   assert.equal(
     measurement.oblique!.elevationDeg.toFixed(6),
-    elevationFromHorizontal(
-      measurement.angleLambdaDeg,
-      measurement.vertical!.angleLambdaDeg,
-    ).toFixed(6),
+    measurement.purkinjeElevationDeg!.toFixed(6),
   );
 });
 
@@ -343,4 +348,93 @@ test("l’élévation est l’angle de λ oblique par rapport à l’horizontale
   assert.equal(elevationFromHorizontal(0, 2).toFixed(6), (90).toFixed(6));
   assert.equal(elevationFromHorizontal(3, -3).toFixed(6), (-45).toFixed(6));
   assert.equal(elevationFromHorizontal(-2, 2).toFixed(6), (45).toFixed(6));
+});
+
+test("LS et LI se déplacent indépendamment, l’ellipse a deux rayons verticaux", () => {
+  const placed = applyLandmarkConstraints(
+    {
+      limbusNasal: { x: 300, y: 200 },
+      limbusTemporal: { x: 100, y: 200 },
+      limbusSuperior: { x: 200, y: 80 },
+    },
+    "limbusInferior",
+    { x: 180, y: 400 },
+    "place",
+  );
+  assert.deepEqual(placed.limbusSuperior, { x: 200, y: 80 });
+  assert.deepEqual(placed.limbusInferior, { x: 200, y: 400 });
+
+  const dragged = applyLandmarkConstraints(
+    placed,
+    "limbusSuperior",
+    { x: 250, y: 40 },
+    "drag",
+  );
+  assert.deepEqual(dragged.limbusSuperior, { x: 200, y: 40 });
+  assert.deepEqual(dragged.limbusInferior, { x: 200, y: 400 });
+
+  const ellipse = limbusEllipse(dragged);
+  assert.ok(ellipse);
+  assert.equal(ellipse.ryTop, 160);
+  assert.equal(ellipse.ryBottom, 200);
+});
+
+test("l’élévation de P1 est l’angle photo depuis le centre pupillaire", () => {
+  assert.equal(
+    purkinjeElevationDeg({ x: 100, y: 100 }, { x: 130, y: 100 }).toFixed(6),
+    (0).toFixed(6),
+  );
+  assert.equal(
+    purkinjeElevationDeg({ x: 100, y: 100 }, { x: 100, y: 70 }).toFixed(6),
+    (90).toFixed(6),
+  );
+  assert.equal(
+    purkinjeElevationDeg({ x: 100, y: 100 }, { x: 130, y: 130 }).toFixed(6),
+    (-45).toFixed(6),
+  );
+});
+
+test("λ vertical projette P1 sur l’axe pupillaire PS–PI, pas sur la cornée", () => {
+  const landmarks = {
+    limbusTemporal: { x: 100, y: 200 },
+    limbusNasal: { x: 334, y: 200 },
+    limbusSuperior: { x: 217, y: 83 },
+    limbusInferior: { x: 217, y: 317 },
+    pupilTemporal: { x: 177, y: 200 },
+    pupilNasal: { x: 257, y: 200 },
+    pupilSuperior: { x: 200, y: 150 },
+    pupilInferior: { x: 234, y: 250 },
+    cornealReflex: { x: 217, y: 180 },
+  };
+  const alongPupil = extractVerticalPixels(landmarks);
+  assert.ok(alongPupil);
+  const alongCornea = {
+    ...alongPupil!,
+    nppi: projectedAlong(
+      landmarks.pupilSuperior,
+      landmarks.cornealReflex,
+      landmarks.limbusSuperior,
+      landmarks.limbusInferior,
+    ),
+    pupilNptp: projectedAlong(
+      landmarks.pupilSuperior,
+      landmarks.pupilInferior,
+      landmarks.limbusSuperior,
+      landmarks.limbusInferior,
+    ),
+  };
+  assert.notEqual(alongPupil!.nppi.toFixed(6), alongCornea.nppi.toFixed(6));
+
+  const measurement = measureEye("OD", landmarks, DEFAULT_PARAMS);
+  assert.equal(measurement.status, "ok");
+  if (measurement.status !== "ok") return;
+  assert.ok(measurement.vertical);
+  const expected = computeAngleLambda(alongPupil!, {
+    wtwMm: REFERENCE_WTW_MM,
+    dacMm: REFERENCE_DAC_MM,
+  });
+  assert.equal(
+    measurement.vertical!.angleLambdaDeg.toFixed(6),
+    expected.angleLambdaDeg.toFixed(6),
+  );
 });
