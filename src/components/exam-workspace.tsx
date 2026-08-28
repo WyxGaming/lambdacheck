@@ -169,8 +169,9 @@ export function ExamWorkspace() {
           </h2>
           <p className="mt-2 max-w-2xl text-muted-foreground">
             Importez ou déposez une photo par œil. Posez LN et LT, puis
-            ajustez LS et LI séparément sur l’ellipse. λ vertical, λ
-            oblique et l’élévation de P1 partent du centre pupillaire.
+            LS et LI par deux clics (même axe vertical, hauteurs
+            indépendantes). λ vertical, λ oblique et l’élévation de P1
+            partent du centre pupillaire.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -188,11 +189,10 @@ export function ExamWorkspace() {
               <div>
                 <CardTitle>Photographies monoculaires</CardTitle>
                 <CardDescription>
-                Cliquez pour poser le curseur actif. Après LN et LT, des
-                poignées apparaissent sur l’ellipse du limbe : LS et LI se
-                déplacent l’un sans l’autre. Les bords pupillaires (PN, PT,
-                PS, PI) se posent un par un. λv, λoblique et l’élévation
-                de P1 sont mesurés depuis le centre pupillaire.
+                Cliquez pour poser le curseur actif. LN puis LT (même
+                hauteur), LS puis LI (même axe vertical, hauteurs
+                indépendantes). L’ellipse se cale sur ces quatre points.
+                PN, PT, PS, PI se posent ensuite un par un.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -568,7 +568,7 @@ function EyeResult({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ajustez LS et LI séparément, puis posez PS et PI.
+            Posez LS puis LI par deux clics, puis posez PS et PI.
           </p>
         )}
       </div>

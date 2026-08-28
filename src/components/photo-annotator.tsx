@@ -314,6 +314,7 @@ export function PhotoAnnotator({
     const ellipse = limbusEllipse(landmarksRef.current);
     if (!ellipse) return null;
     const imagePoint = cssToImageUnclamped(cssPoint, layout);
+    const placingNew = !landmarksRef.current[activeRef.current];
 
     let bestHandle: { id: LandmarkId; dist: number } | null = null;
     for (const handle of limbusEllipseHandles(landmarksRef.current)) {
@@ -323,6 +324,8 @@ export function PhotoAnnotator({
       }
     }
     if (bestHandle) return { kind: "handle", id: bestHandle.id };
+
+    if (placingNew) return null;
 
     if (distanceToEllipse(imagePoint, ellipse) * layout.scale <= ELLIPSE_RIM_HIT_CSS) {
       const id = nearestEllipseHandle(imagePoint, landmarksRef.current);
@@ -684,8 +687,8 @@ export function PhotoAnnotator({
           landmarks.limbusTemporal &&
           !(landmarks.limbusSuperior && landmarks.limbusInferior) && (
           <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 rounded-md bg-black/55 px-2 py-1.5 text-center text-[11px] leading-snug text-white/90 backdrop-blur-sm">
-            Glissez LS et LI séparément pour coller l’ellipse au limbe.
-            Le centre déplace l’ensemble.
+            Cliquez pour poser LS, puis LI, comme LN et LT.
+            Chaque point garde sa hauteur.
           </p>
         )}
       </div>

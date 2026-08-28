@@ -106,13 +106,13 @@ export const LANDMARK_META: Record<
   limbusSuperior: {
     label: "Limbe supérieur",
     short: "LS",
-    hint: "Bord supérieur de l’iris — indépendant de LI",
+    hint: "Bord supérieur de l’iris — cliquez pour poser, comme LN",
     color: "#7c3aed",
   },
   limbusInferior: {
     label: "Limbe inférieur",
     short: "LI",
-    hint: "Bord inférieur de l’iris — indépendant de LS",
+    hint: "Bord inférieur de l’iris — cliquez pour poser, même axe vertical que LS",
     color: "#6d28d9",
   },
   pupilNasal: {
@@ -391,18 +391,23 @@ export function limbusEllipseHandles(
   if (!ellipse || !nasal || !temporal) return [];
   const leftId = nasal.x <= temporal.x ? "limbusNasal" : "limbusTemporal";
   const rightId = leftId === "limbusNasal" ? "limbusTemporal" : "limbusNasal";
-  return [
+  const handles: { id: Exclude<EllipseHandleId, "center">; point: Point }[] = [
     { id: leftId, point: { x: ellipse.cx - ellipse.rx, y: ellipse.cy } },
     { id: rightId, point: { x: ellipse.cx + ellipse.rx, y: ellipse.cy } },
-    {
+  ];
+  if (landmarks.limbusSuperior) {
+    handles.push({
       id: "limbusSuperior",
       point: { x: ellipse.cx, y: ellipse.cy - ellipse.ryTop },
-    },
-    {
+    });
+  }
+  if (landmarks.limbusInferior) {
+    handles.push({
       id: "limbusInferior",
       point: { x: ellipse.cx, y: ellipse.cy + ellipse.ryBottom },
-    },
-  ];
+    });
+  }
+  return handles;
 }
 
 export function nearestEllipseHandle(
@@ -463,19 +468,9 @@ export function translateCornea(
 }
 
 export function ghostHandles(
-  landmarks: EyeLandmarks,
+  _landmarks: EyeLandmarks,
 ): Partial<Record<LandmarkId, Point>> {
-  const ghosts: Partial<Record<LandmarkId, Point>> = {};
-  const cornea = limbusEllipse(landmarks);
-  if (cornea) {
-    if (!landmarks.limbusSuperior) {
-      ghosts.limbusSuperior = { x: cornea.cx, y: cornea.cy - cornea.ryTop };
-    }
-    if (!landmarks.limbusInferior) {
-      ghosts.limbusInferior = { x: cornea.cx, y: cornea.cy + cornea.ryBottom };
-    }
-  }
-  return ghosts;
+  return {};
 }
 
 export function displayedPoint(
@@ -509,7 +504,16 @@ export function applyLandmarkConstraints(
     return syncVerticalLimbusToCornea(aligned);
   }
   if (id === "limbusSuperior" || id === "limbusInferior") {
-    return placeIndependentVerticalLimbus(landmarks, id, point);
+    const aligned = alignPair(
+      landmarks,
+      id,
+      "limbusSuperior",
+      "limbusInferior",
+      "x",
+      point,
+      mode,
+    );
+    return snapVerticalLimbusX(aligned);
   }
   return { ...landmarks, [id]: point };
 }
@@ -540,21 +544,17 @@ function alignPair(
   return { ...landmarks, [id]: moved, [otherId]: otherMoved };
 }
 
-function placeIndependentVerticalLimbus(
-  landmarks: EyeLandmarks,
-  id: "limbusSuperior" | "limbusInferior",
-  point: Point,
-): EyeLandmarks {
+function snapVerticalLimbusX(landmarks: EyeLandmarks): EyeLandmarks {
   const center = corneaCenter(landmarks);
-  const x = center?.x ?? point.x;
-  let y = point.y;
-  if (center) {
-    y =
-      id === "limbusSuperior"
-        ? Math.min(y, center.y - 2)
-        : Math.max(y, center.y + 2);
+  if (!center) return landmarks;
+  const next = { ...landmarks };
+  if (next.limbusSuperior) {
+    next.limbusSuperior = { x: center.x, y: next.limbusSuperior.y };
   }
-  return { ...landmarks, [id]: { x, y } };
+  if (next.limbusInferior) {
+    next.limbusInferior = { x: center.x, y: next.limbusInferior.y };
+  }
+  return next;
 }
 
 function corneaCenter(landmarks: EyeLandmarks): Point | null {

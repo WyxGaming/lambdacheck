@@ -260,12 +260,19 @@ test("poignées cardinales de l’ellipse du limbe", () => {
     limbusTemporal: { x: 100, y: 200 },
   };
   const handles = limbusEllipseHandles(landmarks);
-  assert.equal(handles.length, 4);
-  assert.equal(nearestEllipseHandle({ x: 200, y: 80 }, landmarks), "limbusSuperior");
-  assert.equal(nearestEllipseHandle({ x: 200, y: 320 }, landmarks), "limbusInferior");
+  assert.equal(handles.length, 2);
   assert.equal(nearestEllipseHandle({ x: 320, y: 200 }, landmarks), "limbusNasal");
   assert.equal(nearestEllipseHandle({ x: 80, y: 200 }, landmarks), "limbusTemporal");
-  assert.equal(nearestEllipseHandle({ x: 200, y: 200 }, landmarks, 10), null);
+  assert.equal(nearestEllipseHandle({ x: 200, y: 80 }, landmarks, 10), null);
+
+  const withVertical = {
+    ...landmarks,
+    limbusSuperior: { x: 200, y: 80 },
+    limbusInferior: { x: 200, y: 320 },
+  };
+  assert.equal(limbusEllipseHandles(withVertical).length, 4);
+  assert.equal(nearestEllipseHandle({ x: 200, y: 80 }, withVertical), "limbusSuperior");
+  assert.equal(nearestEllipseHandle({ x: 200, y: 320 }, withVertical), "limbusInferior");
 
   const ellipse = limbusEllipse(landmarks);
   assert.ok(ellipse);
@@ -350,18 +357,27 @@ test("l’élévation est l’angle de λ oblique par rapport à l’horizontale
   assert.equal(elevationFromHorizontal(-2, 2).toFixed(6), (45).toFixed(6));
 });
 
-test("LS et LI se déplacent indépendamment, l’ellipse a deux rayons verticaux", () => {
-  const placed = applyLandmarkConstraints(
-    {
-      limbusNasal: { x: 300, y: 200 },
-      limbusTemporal: { x: 100, y: 200 },
-      limbusSuperior: { x: 200, y: 80 },
-    },
-    "limbusInferior",
-    { x: 180, y: 400 },
+test("LS et LI se posent comme LN et LT, sans miroir vertical", () => {
+  const withNt = {
+    limbusNasal: { x: 300, y: 200 },
+    limbusTemporal: { x: 100, y: 200 },
+  };
+  const first = applyLandmarkConstraints(
+    withNt,
+    "limbusSuperior",
+    { x: 180, y: 70 },
     "place",
   );
-  assert.deepEqual(placed.limbusSuperior, { x: 200, y: 80 });
+  assert.deepEqual(first.limbusSuperior, { x: 200, y: 70 });
+  assert.equal(first.limbusInferior, undefined);
+
+  const placed = applyLandmarkConstraints(
+    first,
+    "limbusInferior",
+    { x: 40, y: 400 },
+    "place",
+  );
+  assert.deepEqual(placed.limbusSuperior, { x: 200, y: 70 });
   assert.deepEqual(placed.limbusInferior, { x: 200, y: 400 });
 
   const dragged = applyLandmarkConstraints(
