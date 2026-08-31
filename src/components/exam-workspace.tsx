@@ -636,41 +636,18 @@ function EyeResult({
           </dd>
         </div>
         <div>
-          <dt>Ø pupille H</dt>
+          <dt>Øpupille</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.pupilDiameterMm)}
           </dd>
         </div>
         <div>
-          <dt>Ø pupille V</dt>
-          <dd className="text-foreground tabular-nums">
-            {measurement.vertical
-              ? formatMm(measurement.vertical.pupilDiameterMm)
-              : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt>Pupil shift H</dt>
+          <dt>Pupil shift</dt>
           <dd className="text-foreground tabular-nums">
             {formatMm(measurement.pupilShiftMm)}{" "}
             <span className="text-muted-foreground">
               ({lateralityLabel(measurement.pupilShiftLaterality)})
             </span>
-          </dd>
-        </div>
-        <div>
-          <dt>Pupil shift V</dt>
-          <dd className="text-foreground tabular-nums">
-            {measurement.vertical ? (
-              <>
-                {formatMm(measurement.vertical.pupilShiftMm)}{" "}
-                <span className="text-muted-foreground">
-                  ({lateralityLabel(measurement.vertical.pupilShiftLaterality)})
-                </span>
-              </>
-            ) : (
-              "—"
-            )}
           </dd>
         </div>
       </dl>
@@ -796,11 +773,11 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}, ${physiologicalLabel(measurement.physiological)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · pupil shift H = ${formatMm(measurement.pupilShiftMm)} (${lateralityLabel(measurement.pupilShiftLaterality)})`;
+  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}, ${physiologicalLabel(measurement.physiological)}) · Øpupille = ${formatMm(measurement.pupilDiameterMm)} · pupil shift = ${formatMm(measurement.pupilShiftMm)} (${lateralityLabel(measurement.pupilShiftLaterality)})`;
   if (!measurement.vertical || !measurement.oblique) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · élévation P1 = ${measurement.purkinjeElevationDeg != null ? `${formatDeg(measurement.purkinjeElevationDeg, true)} (${lateralityLabel(elevationLaterality(measurement.purkinjeElevationDeg))})` : "—"} · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · pupil shift V = ${formatMm(measurement.vertical.pupilShiftMm)} (${lateralityLabel(measurement.vertical.pupilShiftLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · élévation P1 = ${measurement.purkinjeElevationDeg != null ? `${formatDeg(measurement.purkinjeElevationDeg, true)} (${lateralityLabel(elevationLaterality(measurement.purkinjeElevationDeg))})` : "—"}`;
 }
 
 function parseOptionalMm(raw: string): number | null {

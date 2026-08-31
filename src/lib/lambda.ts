@@ -788,12 +788,8 @@ function axisFromComputation(
         : "Le reflet de Purkinje est en dehors de la pupille (axe vertical). Vérifiez PN, PT et P1.",
     );
   }
-  if (computation.pupilDiameterMm >= scale.wtwMm) {
-    warnings.push(
-      orientation === "horizontal"
-        ? "Le diamètre pupillaire horizontal dépasse le diamètre cornéen."
-        : "Le diamètre pupillaire vertical dépasse le diamètre cornéen.",
-    );
+  if (computation.pupilDiameterMm >= scale.wtwMm && orientation === "horizontal") {
+    warnings.push("Øpupille dépasse le diamètre cornéen.");
   }
 
   const rad = (computation.angleLambdaDeg * Math.PI) / 180;
