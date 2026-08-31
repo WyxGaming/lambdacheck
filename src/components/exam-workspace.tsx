@@ -281,7 +281,7 @@ export function ExamWorkspace() {
           </CardContent>
         </Card>
 
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-28">
           <ResultsCard
             patientRef={patientRef}
             od={odMeasure}
@@ -466,7 +466,7 @@ function ResultsCard({
   os: EyeMeasurement;
 }) {
   return (
-    <Card className="lg:sticky lg:top-24">
+    <Card>
       <CardHeader>
         <CardTitle>Angle lambda</CardTitle>
         <CardDescription>
