@@ -56,6 +56,8 @@ npm start          # sert le dossier out/ sur http://127.0.0.1:43127
 
 Déposez `out/` sur n’importe quel serveur de fichiers statiques (Nginx, Apache, Netlify, dossier partagé). Pas de Node.js côté clinicien.
 
+Sur Vercel, le projet sert `out/` en statique (`framework: null`). `cleanUrls` dans `vercel.json` mappe `/inscription` vers `inscription.html` (sinon la page renvoie 404).
+
 ```bash
 npm test    # vérifie le calcul et la géométrie
 ```
