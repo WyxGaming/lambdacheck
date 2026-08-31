@@ -1,4 +1,4 @@
-import { ExamWorkspace } from "@/components/exam-workspace";
+import { ExamGate } from "@/components/exam-gate";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
 export default function Home() {
@@ -8,7 +8,7 @@ export default function Home() {
       <main className="flex-1">
         <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
           <Intro />
-          <ExamWorkspace />
+          <ExamGate />
         </div>
       </main>
       <SiteFooter />
@@ -27,10 +27,10 @@ function Intro() {
           Angle lambda photographique
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Ouvrez le site, importez une photo monoculaire, marquez l’axe
-          horizontal puis LS et LI (deux clics, comme LN et LT). λ
-          horizontal, vertical, oblique et l’élévation de P1 s’affichent.
-          Aucun compte, aucune installation.
+          Créez un compte (e-mail et mot de passe), confirmez le lien reçu,
+          puis importez une photo monoculaire. Marquez l’axe horizontal,
+          puis LS et LI. λ horizontal, vertical, oblique et l’élévation de
+          P1 s’affichent. Les photos restent dans le navigateur.
         </p>
       </div>
       <details

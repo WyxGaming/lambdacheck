@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { AccountNav } from "@/components/account-nav";
 import { cn } from "@/lib/utils";
 
 export function SiteHeader({ className }: { className?: string }) {
@@ -18,23 +19,12 @@ export function SiteHeader({ className }: { className?: string }) {
           <div className="leading-tight">
             <p className="font-heading text-lg tracking-tight">LambdaCheck</p>
             <p className="text-[11px] text-muted-foreground">
-              Prêt à l’emploi · photos locales
+              Compte clinicien · photos locales
             </p>
           </div>
         </Link>
         <nav className="flex items-center gap-3 text-sm">
-          <a
-            href="#protocole"
-            className="hidden text-muted-foreground hover:text-foreground sm:inline"
-          >
-            Protocole
-          </a>
-          <a
-            href="#mesure"
-            className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
-          >
-            Mesurer
-          </a>
+          <AccountNav />
         </nav>
       </div>
     </header>
@@ -47,7 +37,8 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:px-6">
         <p>
           LambdaCheck est un outil d’aide à la mesure. Il ne remplace pas
-          l’examen clinique. Les photographies restent dans le navigateur.
+          l’examen clinique. Les photographies restent dans le navigateur ;
+          le compte sert uniquement à l’identification.
         </p>
       </div>
     </footer>

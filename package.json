@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "npx --yes serve out -s -l tcp://0.0.0.0:43127",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test src/lib/lambda.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@supabase/supabase-js": "^2.112.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.33.0",

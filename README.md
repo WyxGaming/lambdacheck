@@ -2,15 +2,38 @@
 
 Outil web **prêt à l’emploi** pour orthoptistes et ophtalmologistes : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 
-Aucun compte, aucun serveur de données. Les photos restent dans le navigateur.
+Inscription **e-mail + mot de passe**, avec **confirmation du lien** reçu. Les photos restent dans le navigateur : elles ne sont jamais envoyées au serveur d’identification.
 
 ## Utilisation (cliniciens)
 
 Site en ligne : [https://lambdacheck1.vercel.app](https://lambdacheck1.vercel.app/)
 
-Ouvrez-le dans un navigateur (ordinateur ou tablette). Importez OD puis OS, posez les cinq curseurs, lisez λ.
+Ouvrez-le dans un navigateur (ordinateur ou tablette). Créez un compte, confirmez l’e-mail, importez OD puis OS, posez les curseurs, lisez λ.
 
 Sur tablette, le site peut être ajouté à l’écran d’accueil (application autonome).
+
+## Compte clinicien
+
+1. `/inscription` : e-mail professionnel et mot de passe (8 caractères minimum).
+2. Ouvrez le lien de confirmation envoyé par e-mail (`/confirmation`).
+3. `/connexion` : même e-mail et mot de passe. Un bouton permet de renvoyer le lien.
+
+Tant que l’e-mail n’est pas confirmé, le module de mesure reste verrouillé.
+
+L’identification utilise [Supabase Auth](https://supabase.com) côté navigateur (clés publiques `NEXT_PUBLIC_*`). Copiez `.env.example` vers `.env.local` en local. Sur Vercel : Project Settings → Environment Variables, puis **redéployez** (les variables publiques sont injectées au build).
+
+Dans le tableau de bord Supabase :
+
+- Authentication → Providers → Email : **Confirm email** activé
+- Authentication → URL Configuration → Redirect URLs :
+  - `https://lambdacheck1.vercel.app/confirmation`
+  - `http://127.0.0.1:43127/confirmation`
+
+Sans ces variables, le site reste ouvert sans compte (développement / USB).
+
+## Confidentialité
+
+Les photographies ne quittent pas le navigateur. Le compte ne sert qu’à l’identification.
 
 ## Démarrage local
 
