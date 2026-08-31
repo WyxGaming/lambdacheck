@@ -62,12 +62,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <Alert>
             <AlertTitle>Configuration requise</AlertTitle>
             <AlertDescription>
-              Créez un projet gratuit sur supabase.com, activez Authentication
-              → Providers → Email avec « Confirm email », ajoutez{" "}
-              <code>https://lambdacheck1.vercel.app/confirmation</code> aux
-              Redirect URLs, puis renseignez{" "}
+              Créez un projet sur supabase.com, puis ouvrez Project Settings
+              (engrenage) → API. Copiez l’URL et la clé <code>anon public</code>.
+              Confirmation d’e-mail : Authentication → Sign In / Providers →
+              Email → Confirm email. Redirect URL :{" "}
+              <code>https://lambdacheck1.vercel.app/confirmation</code>. Collez{" "}
               <code>NEXT_PUBLIC_SUPABASE_URL</code> et{" "}
-              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> sur Vercel et
+              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> dans Vercel, puis
               redéployez. Les photos restent locales.
             </AlertDescription>
           </Alert>

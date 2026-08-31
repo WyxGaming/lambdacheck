@@ -24,7 +24,9 @@ L’identification utilise [Supabase Auth](https://supabase.com) côté navigate
 
 Dans le tableau de bord Supabase :
 
-- Authentication → Providers → Email : **Confirm email** activé
+- Authentication → **Sign In / Providers** → Email : **Confirm email** activé
+  (il n’y a plus un menu nommé seulement « Providers »)
+- Project Settings (engrenage) → **API** : copier Project URL et la clé anon public
 - Authentication → URL Configuration → Redirect URLs :
   - `https://lambdacheck1.vercel.app/confirmation`
   - `http://127.0.0.1:43127/confirmation`
