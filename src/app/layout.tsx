@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google";
 
-import { AuthProvider } from "@/components/auth-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
@@ -25,7 +24,7 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "LambdaCheck — angle lambda photographique",
   description:
-    "Ouvrez le navigateur, créez un compte, importez une photo monoculaire, lisez λ. Les photos restent locales.",
+    "Ouvrez le navigateur, importez une photo monoculaire, lisez λ. Les photos restent locales.",
   applicationName: "LambdaCheck",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -49,9 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${sourceSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </TooltipProvider>
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   );

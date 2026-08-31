@@ -2,41 +2,19 @@
 
 Outil web **prêt à l’emploi** pour orthoptistes et ophtalmologistes : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 
-Inscription **e-mail + mot de passe**, avec **confirmation du lien** reçu. Les photos restent dans le navigateur : elles ne sont jamais envoyées au serveur d’identification.
+Aucun compte. Les photos restent dans le navigateur.
 
 ## Utilisation (cliniciens)
 
 Site en ligne : [https://lambdacheck1.vercel.app](https://lambdacheck1.vercel.app/)
 
-Ouvrez-le dans un navigateur (ordinateur ou tablette). Créez un compte, confirmez l’e-mail, importez OD puis OS, posez les curseurs, lisez λ.
+Ouvrez-le dans un navigateur (ordinateur ou tablette). Importez OD puis OS, posez les curseurs, lisez λ.
 
 Sur tablette, le site peut être ajouté à l’écran d’accueil (application autonome).
 
-## Compte clinicien
-
-1. `/inscription` : e-mail professionnel et mot de passe (8 caractères minimum).
-2. Ouvrez le lien de confirmation envoyé par e-mail (`/confirmation`).
-3. `/connexion` : même e-mail et mot de passe. Un bouton permet de renvoyer le lien.
-
-Tant que l’e-mail n’est pas confirmé, **le module de mesure reste verrouillé**. Sans compte, personne ne peut importer de photo ni calculer λ.
-
-L’identification utilise [Supabase Auth](https://supabase.com) côté navigateur (clés publiques `NEXT_PUBLIC_*`). Copiez `.env.example` vers `.env.local` en local. Sur Vercel : Project Settings → Environment Variables, puis **redéployez** (les variables publiques sont injectées au build). Sans ces clés, l’inscription affiche « configuration requise » et les mesures restent fermées.
-
-Dans le tableau de bord Supabase :
-
-- Authentication → **Sign In / Providers** → Email : **Confirm email** activé
-  (il n’y a plus un menu nommé seulement « Providers »)
-- Project Settings (engrenage) → **API** : copier Project URL et la clé anon public
-- Authentication → **URL Configuration** (pas le menu Sign In / Providers) :
-  - Site URL : `https://lambdacheck1.vercel.app`
-  - Redirect URLs :
-    - `https://lambdacheck1.vercel.app/confirmation`
-    - `http://127.0.0.1:43127/confirmation`
-  Sans ça, le lien de confirmation ouvre `localhost:3000` et le navigateur affiche « impossible d’accéder au site ».
-
 ## Confidentialité
 
-Les photographies ne quittent pas le navigateur. Le compte ne sert qu’à l’identification.
+Les photographies ne quittent pas le navigateur. Aucun compte, aucun envoi vers un serveur.
 
 ## Démarrage local
 
@@ -58,8 +36,6 @@ npm start          # sert le dossier out/ sur http://127.0.0.1:43127
 ```
 
 Déposez `out/` sur n’importe quel serveur de fichiers statiques (Nginx, Apache, Netlify, dossier partagé). Pas de Node.js côté clinicien.
-
-Sur Vercel, le projet sert `out/` en statique (`framework: null`). `cleanUrls` dans `vercel.json` mappe `/inscription` vers `inscription.html` (sinon la page renvoie 404).
 
 ```bash
 npm test    # vérifie le calcul et la géométrie
