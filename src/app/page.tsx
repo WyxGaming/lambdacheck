@@ -1,5 +1,5 @@
 import { ExamWorkspace } from "@/components/exam-workspace";
-import { AffiliationLogos, SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
 export default function Home() {
   return (
@@ -31,7 +31,6 @@ function Intro() {
           LS, LI, puis PN, PT et P1. λh et λv partent du milieu de PN–PT.
           Les photos restent dans le navigateur. Aucun compte.
         </p>
-        <AffiliationLogos compact className="mt-4 justify-start" />
       </div>
       <details
         id="protocole"

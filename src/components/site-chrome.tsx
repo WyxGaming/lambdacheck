@@ -7,31 +7,36 @@ const AFFILIATIONS = [
     href: "https://hopital-necker.aphp.fr",
     src: "/affiliations/necker.png",
     alt: "Hôpital Necker-Enfants malades, hôpital universitaire",
-    className: "h-14 sm:h-16",
+    headerClassName: "h-9 sm:h-11",
+    footerClassName: "h-14 sm:h-16",
   },
   {
     href: "https://www.aphp.fr",
     src: "/affiliations/aphp-centre.png",
     alt: "AP-HP. Centre — Université Paris Cité",
-    className: "h-10 sm:h-12",
+    headerClassName: "h-8 sm:h-10",
+    footerClassName: "h-12 sm:h-14",
   },
   {
     href: "https://u-paris.fr",
     src: "/affiliations/universite-paris-cite.png",
     alt: "Université Paris Cité",
-    className: "h-12 sm:h-14",
+    headerClassName: "h-8 sm:h-10",
+    footerClassName: "h-16 sm:h-24 max-w-[18rem] sm:max-w-[22rem]",
   },
   {
     href: "https://maladiesrares-necker.aphp.fr/ophtara/",
     src: "/affiliations/ophtara.png",
     alt: "OPHTARA — Centre de maladies rares en ophtalmologie",
-    className: "h-14 sm:h-16",
+    headerClassName: "h-9 sm:h-11",
+    footerClassName: "h-14 sm:h-16",
   },
   {
     href: "https://centreborelli.ens-paris-saclay.fr",
     src: "/affiliations/centre-borelli.png",
     alt: "Centre Borelli",
-    className: "h-12 sm:h-14",
+    headerClassName: "h-8 sm:h-10",
+    footerClassName: "h-12 sm:h-14",
   },
 ] as const;
 
@@ -60,8 +65,8 @@ export function SiteHeader({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 sm:px-6">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <LogoMark />
           <div className="leading-tight">
             <p className="font-heading text-lg tracking-tight">LambdaCheck</p>
@@ -70,13 +75,11 @@ export function SiteHeader({ className }: { className?: string }) {
             </p>
           </div>
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
-          <a
-            href="#affiliations"
-            className="hidden text-muted-foreground hover:text-foreground sm:inline"
-          >
-            Affiliations
-          </a>
+        <AffiliationLogos
+          variant="header"
+          className="order-last w-full min-w-0 justify-start md:order-none md:w-auto"
+        />
+        <nav className="ml-auto flex items-center gap-3 text-sm">
           <a
             href="#protocole"
             className="hidden text-muted-foreground hover:text-foreground sm:inline"
@@ -96,16 +99,20 @@ export function SiteHeader({ className }: { className?: string }) {
 }
 
 export function AffiliationLogos({
-  compact = false,
+  variant = "footer",
   className,
 }: {
-  compact?: boolean;
+  variant?: "header" | "footer";
   className?: string;
 }) {
+  const inHeader = variant === "header";
   return (
     <ul
       className={cn(
-        "flex flex-wrap items-center justify-center gap-x-6 gap-y-4 sm:gap-x-8",
+        "flex flex-wrap items-center",
+        inHeader
+          ? "justify-center gap-x-3 gap-y-2 sm:gap-x-4"
+          : "justify-center gap-x-6 gap-y-4 sm:gap-x-8",
         className,
       )}
     >
@@ -121,8 +128,11 @@ export function AffiliationLogos({
               src={logo.src}
               alt={logo.alt}
               className={cn(
-                "w-auto max-w-[9.5rem] object-contain object-center sm:max-w-[11rem]",
-                compact ? "h-10 sm:h-12" : logo.className,
+                "w-auto object-contain object-center",
+                inHeader
+                  ? "max-w-[7.5rem] sm:max-w-[9rem]"
+                  : "max-w-[9.5rem] sm:max-w-[11rem]",
+                inHeader ? logo.headerClassName : logo.footerClassName,
               )}
             />
           </a>
