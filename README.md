@@ -2,7 +2,15 @@
 
 Outil web **prêt à l’emploi** pour orthoptistes et ophtalmologistes : calcul de l’**angle lambda** de chaque œil à partir de photographies **monoculaires** avec **reflets cornéens** (premier Purkinje).
 
+Développé à l’**AP-HP**, **Hôpital Necker-Enfants malades**, centre **OPHTARA**, **Université Paris Cité** et **Centre Borelli**.
+
 Aucun compte. Les photos restent dans le navigateur.
+
+## Droits et référence
+
+Rateaux M, Bremond-Gignac D, Robert MP. From monocular photograph to angle lambda: A new clinical approach for quantitative assessment. *J Binocul Vis Ocul Motil*. 22 juin 2022;1‑7. PubMed PMID: [35731900](https://pubmed.ncbi.nlm.nih.gov/35731900/).
+
+LambdaCheck et ses contenus sont protégés par la licence [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/deed.fr) : attribution obligatoire, pas d’usage commercial, pas de modification.
 
 ## Utilisation (cliniciens)
 

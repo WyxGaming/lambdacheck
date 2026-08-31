@@ -24,7 +24,7 @@ const sourceSerif = Source_Serif_4({
 export const metadata: Metadata = {
   title: "LambdaCheck — angle lambda photographique",
   description:
-    "Ouvrez le navigateur, importez une photo monoculaire, lisez λ. Les photos restent locales.",
+    "Mesure photographique de l’angle lambda. AP-HP, Hôpital Necker-Enfants malades, OPHTARA, Université Paris Cité, Centre Borelli. Les photos restent locales.",
   applicationName: "LambdaCheck",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
