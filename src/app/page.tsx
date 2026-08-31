@@ -27,10 +27,9 @@ function Intro() {
           Angle lambda photographique
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Ouvrez le site, importez une photo monoculaire, marquez l’axe
-          horizontal puis LS et LI. λ horizontal, vertical, oblique et
-          l’élévation de P1 s’affichent. Les photos restent dans le
-          navigateur. Aucun compte.
+          Ouvrez le site, importez une photo monoculaire, marquez LN, LT,
+          LS, LI, puis PN, PT et P1. λh et λv partent du milieu de PN–PT.
+          Les photos restent dans le navigateur. Aucun compte.
         </p>
       </div>
       <details
@@ -50,9 +49,9 @@ function Intro() {
           </li>
           <li>
             Marquez limbe nasal et temporal, puis limbe supérieur et
-            inférieur (deux clics, comme LN et LT). Posez les quatre
-            bords pupillaires un par un, puis le reflet. WtW et DAC si
-            connus, sinon 11,71 mm et 3,4 mm.
+            inférieur (deux clics, comme LN et LT). Posez PN et PT,
+            puis le reflet. λh et λv partent du milieu de PN–PT. WtW
+            et DAC si connus, sinon 11,71 mm et 3,4 mm.
           </li>
         </ol>
       </details>

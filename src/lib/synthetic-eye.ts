@@ -35,8 +35,6 @@ export function demoGeometry(eye: EyeSide) {
     limbusInferior: { x: cx, y: cy + irisR },
     pupilTemporal: { x: cx - nasalX * pupilR, y: cy },
     pupilNasal: { x: cx + nasalX * pupilR, y: cy },
-    pupilSuperior: { x: cx, y: cy - pupilR },
-    pupilInferior: { x: cx, y: cy + pupilR },
     cornealReflex: { x: reflexX, y: reflexY },
   };
 

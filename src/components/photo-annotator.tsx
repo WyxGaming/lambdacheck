@@ -889,17 +889,31 @@ function drawGuides(
     ctx.strokeStyle = "rgba(251, 191, 36, 0.85)";
     ctx.lineWidth = 1.5;
     ctx.stroke();
-  }
 
-  if (landmarks.pupilSuperior && landmarks.pupilInferior) {
-    const a = imageToCss(landmarks.pupilSuperior, layout);
-    const b = imageToCss(landmarks.pupilInferior, layout);
+    const mid = {
+      x: (pupilNasal.x + pupilTemporal.x) / 2,
+      y: (pupilNasal.y + pupilTemporal.y) / 2,
+    };
+    const dx = pupilTemporal.x - pupilNasal.x;
+    const dy = pupilTemporal.y - pupilNasal.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const span = Math.max(imageWidth, 1);
+    const perpA = imageToCss(
+      { x: mid.x + (dy / len) * span, y: mid.y - (dx / len) * span },
+      layout,
+    );
+    const perpB = imageToCss(
+      { x: mid.x - (dy / len) * span, y: mid.y + (dx / len) * span },
+      layout,
+    );
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.strokeStyle = "rgba(244, 114, 182, 0.85)";
-    ctx.lineWidth = 1.5;
+    ctx.moveTo(perpA.x, perpA.y);
+    ctx.lineTo(perpB.x, perpB.y);
+    ctx.strokeStyle = "rgba(244, 114, 182, 0.55)";
+    ctx.lineWidth = 1.25;
+    ctx.setLineDash([6, 5]);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 
     if (pupil) {

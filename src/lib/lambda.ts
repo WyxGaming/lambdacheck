@@ -7,8 +7,6 @@ export type LandmarkId =
   | "limbusInferior"
   | "pupilNasal"
   | "pupilTemporal"
-  | "pupilSuperior"
-  | "pupilInferior"
   | "cornealReflex";
 
 export type Point = { x: number; y: number };
@@ -64,8 +62,6 @@ export const LANDMARK_ORDER: LandmarkId[] = [
   "limbusInferior",
   "pupilNasal",
   "pupilTemporal",
-  "pupilSuperior",
-  "pupilInferior",
   "cornealReflex",
 ];
 
@@ -80,8 +76,8 @@ export const HORIZONTAL_REQUIRED: LandmarkId[] = [
 export const VERTICAL_REQUIRED: LandmarkId[] = [
   "limbusSuperior",
   "limbusInferior",
-  "pupilSuperior",
-  "pupilInferior",
+  "pupilNasal",
+  "pupilTemporal",
   "cornealReflex",
 ];
 
@@ -127,18 +123,6 @@ export const LANDMARK_META: Record<
     hint: "Marge pupillaire côté tempe — pose libre",
     color: "#c2410c",
   },
-  pupilSuperior: {
-    label: "Bord pupillaire supérieur",
-    short: "PS",
-    hint: "Marge pupillaire en haut — pose libre, la pupille n’est pas forcément ronde",
-    color: "#db2777",
-  },
-  pupilInferior: {
-    label: "Bord pupillaire inférieur",
-    short: "PI",
-    hint: "Marge pupillaire en bas — pose libre, indépendant de PS",
-    color: "#9f1239",
-  },
   cornealReflex: {
     label: "Reflet de Purkinje",
     short: "P1",
@@ -154,7 +138,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). λh et λv : P1 projeté sur PN–PT et PS–PI depuis le milieu du segment PN–PT. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
+    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). λh et λv depuis le milieu de PN–PT (P1 sur PN–PT et perpendiculairement). Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -179,7 +163,8 @@ export type KappaViewResult = {
 /**
  * Formule KappaView4 (Necker-Enfants malades).
  *
- * ratio_lambda = 0,5 − (C→P1) / (axe pupillaire), C = milieu du segment PN–PT
+ * ratio_lambda = 0,5 − (C→P1) / (axe), C = milieu du segment PN–PT
+ * λh sur PN–PT, λv perpendiculaire à PN–PT (vers le limbe supérieur)
  * diam_pupil   = (WtW * pupil_NPTP / cornee_NLTL) * 0.86
  * pupil_shift  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
  * angle_lambda = degrees(atan(((diam_pupil/2) - ratio_lambda * diam_pupil) / DAC)) * 1.0455 - 0.0329
@@ -585,28 +570,9 @@ export function pupilSegmentCenter(landmarks: EyeLandmarks): Point | null {
   return midpoint(nasal, temporal);
 }
 
-/** Centre pupillaire géométrique : intersection des droites PN–PT et PS–PI. */
+/** Centre pupillaire pour le dessin : milieu de PN–PT. */
 export function derivedPupilCenter(landmarks: EyeLandmarks): Point | null {
-  const nasal = landmarks.pupilNasal;
-  const temporal = landmarks.pupilTemporal;
-  const superior = landmarks.pupilSuperior;
-  const inferior = landmarks.pupilInferior;
-  if (nasal && temporal && superior && inferior) {
-    return (
-      lineIntersection(nasal, temporal, superior, inferior) ?? {
-        x: midpoint(superior, inferior).x,
-        y: midpoint(nasal, temporal).y,
-      }
-    );
-  }
-  const horizontal =
-    nasal && temporal ? midpoint(nasal, temporal) : null;
-  const vertical =
-    superior && inferior ? midpoint(superior, inferior) : null;
-  if (horizontal && vertical) {
-    return { x: vertical.x, y: horizontal.y };
-  }
-  return horizontal ?? vertical;
+  return pupilSegmentCenter(landmarks);
 }
 
 export function missingLandmarks(landmarks: EyeLandmarks): LandmarkId[] {
@@ -638,7 +604,7 @@ export function projectedAlong(
   );
 }
 
-/** Distance signée du centre pupillaire à P1, positive vers pupilPositive (PN ou PS). */
+/** Distance signée du centre pupillaire à P1, positive vers pupilPositive (PN ou haut). */
 export function reflexOffsetFromPupilCenter(
   center: Point,
   reflex: Point,
@@ -692,36 +658,68 @@ export function extractKappaViewPixels(landmarks: EyeLandmarks): KappaViewPixels
   );
 }
 
+/** Axe perpendiculaire à PN–PT, orienté vers le limbe supérieur (ou le haut de l’image). */
+export function superiorPerpendicularEnds(
+  nasal: Point,
+  temporal: Point,
+  center: Point,
+  superiorHint: Point,
+): { superior: Point; inferior: Point } {
+  const ax = nasal.x - temporal.x;
+  const ay = nasal.y - temporal.y;
+  let px = -ay;
+  let py = ax;
+  const hx = superiorHint.x - center.x;
+  const hy = superiorHint.y - center.y;
+  if (px * hx + py * hy < 0) {
+    px = -px;
+    py = -py;
+  }
+  return {
+    superior: { x: center.x + px, y: center.y + py },
+    inferior: { x: center.x - px, y: center.y - py },
+  };
+}
+
 export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels | null {
   const limbusSuperior = landmarks.limbusSuperior;
   const limbusInferior = landmarks.limbusInferior;
-  const pupilSuperior = landmarks.pupilSuperior;
-  const pupilInferior = landmarks.pupilInferior;
+  const pupilNasal = landmarks.pupilNasal;
+  const pupilTemporal = landmarks.pupilTemporal;
   const reflex = landmarks.cornealReflex;
   const pupilCenter = pupilSegmentCenter(landmarks);
   if (
     !limbusSuperior ||
     !limbusInferior ||
-    !pupilSuperior ||
-    !pupilInferior ||
+    !pupilNasal ||
+    !pupilTemporal ||
     !reflex ||
     !pupilCenter
   ) {
     return null;
   }
 
+  const pupilSpan = distance(pupilNasal, pupilTemporal);
+  const { superior, inferior } = superiorPerpendicularEnds(
+    pupilNasal,
+    pupilTemporal,
+    pupilCenter,
+    limbusSuperior,
+  );
+  const irisFromLimbusToCenter = projectedAlong(
+    limbusSuperior,
+    pupilCenter,
+    limbusSuperior,
+    limbusInferior,
+  );
+
   return pixelsFromPupilCenter(
     distance(limbusSuperior, limbusInferior),
-    pupilSuperior,
-    pupilInferior,
+    superior,
+    inferior,
     pupilCenter,
     reflex,
-    projectedAlong(
-      limbusSuperior,
-      pupilSuperior,
-      pupilSuperior,
-      pupilInferior,
-    ),
+    irisFromLimbusToCenter - pupilSpan / 2,
   );
 }
 
@@ -755,7 +753,7 @@ function axisFromComputation(
       reason:
         orientation === "horizontal"
           ? "Les bords pupillaires nasal et temporal sont trop proches, ou inversés."
-          : "Les bords pupillaires supérieur et inférieur sont trop proches, ou inversés.",
+          : "Les bords pupillaires nasal et temporal sont trop proches, ou inversés.",
     };
   }
 
@@ -780,14 +778,14 @@ function axisFromComputation(
     warnings.push(
       orientation === "horizontal"
         ? "L’iris nasal est négatif : le bord pupillaire nasal n’est pas entre les limbes, côté nez."
-        : "L’iris supérieur est négatif : le bord pupillaire supérieur n’est pas entre les limbes, en haut.",
+        : "L’iris supérieur est négatif : le milieu de PN–PT n’est pas entre les limbes, en haut.",
     );
   }
   if (computation.ratioLambda < 0 || computation.ratioLambda > 1) {
     warnings.push(
       orientation === "horizontal"
         ? "Le reflet de Purkinje est en dehors de la pupille (axe horizontal). Vérifiez PN, PT et P1."
-        : "Le reflet de Purkinje est en dehors de la pupille (axe vertical). Vérifiez PS, PI et P1.",
+        : "Le reflet de Purkinje est en dehors de la pupille (axe vertical). Vérifiez PN, PT et P1.",
     );
   }
   if (computation.pupilDiameterMm >= scale.wtwMm) {

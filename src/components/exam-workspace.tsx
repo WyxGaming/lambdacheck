@@ -192,7 +192,7 @@ export function ExamWorkspace() {
                 Cliquez pour poser le curseur actif. LN puis LT (même
                 hauteur), LS puis LI (même axe vertical, hauteurs
                 indépendantes). L’ellipse se cale sur ces quatre points.
-                PN, PT, PS, PI se posent ensuite un par un.
+                PN et PT se posent ensuite un par un, puis P1.
                 </CardDescription>
               </div>
               <label className="grid gap-1 text-sm">
@@ -399,12 +399,13 @@ function LandmarkPicker({
   const groups: { title: string; ids: LandmarkId[] }[] = [
     {
       title: "Horizontal",
-      ids: ["limbusNasal", "limbusTemporal", "pupilNasal", "pupilTemporal"],
+      ids: ["limbusNasal", "limbusTemporal"],
     },
     {
       title: "Vertical",
-      ids: ["limbusSuperior", "limbusInferior", "pupilSuperior", "pupilInferior"],
+      ids: ["limbusSuperior", "limbusInferior"],
     },
+    { title: "Pupille", ids: ["pupilNasal", "pupilTemporal"] },
     { title: "Reflet", ids: ["cornealReflex"] },
   ];
   return (
@@ -568,7 +569,7 @@ function EyeResult({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Posez LS puis LI par deux clics, puis posez PS et PI.
+            Posez LS et LI, puis PN, PT et P1. λv part du milieu de PN–PT.
           </p>
         )}
       </div>
