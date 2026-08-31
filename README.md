@@ -18,9 +18,9 @@ Sur tablette, le site peut être ajouté à l’écran d’accueil (application 
 2. Ouvrez le lien de confirmation envoyé par e-mail (`/confirmation`).
 3. `/connexion` : même e-mail et mot de passe. Un bouton permet de renvoyer le lien.
 
-Tant que l’e-mail n’est pas confirmé, le module de mesure reste verrouillé.
+Tant que l’e-mail n’est pas confirmé, **le module de mesure reste verrouillé**. Sans compte, personne ne peut importer de photo ni calculer λ.
 
-L’identification utilise [Supabase Auth](https://supabase.com) côté navigateur (clés publiques `NEXT_PUBLIC_*`). Copiez `.env.example` vers `.env.local` en local. Sur Vercel : Project Settings → Environment Variables, puis **redéployez** (les variables publiques sont injectées au build).
+L’identification utilise [Supabase Auth](https://supabase.com) côté navigateur (clés publiques `NEXT_PUBLIC_*`). Copiez `.env.example` vers `.env.local` en local. Sur Vercel : Project Settings → Environment Variables, puis **redéployez** (les variables publiques sont injectées au build). Sans ces clés, l’inscription affiche « configuration requise » et les mesures restent fermées.
 
 Dans le tableau de bord Supabase :
 
@@ -28,8 +28,6 @@ Dans le tableau de bord Supabase :
 - Authentication → URL Configuration → Redirect URLs :
   - `https://lambdacheck1.vercel.app/confirmation`
   - `http://127.0.0.1:43127/confirmation`
-
-Sans ces variables, le site reste ouvert sans compte (développement / USB).
 
 ## Confidentialité
 

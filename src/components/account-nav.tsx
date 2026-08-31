@@ -10,7 +10,7 @@ import { getSupabase } from "@/lib/supabase";
 
 export function AccountNav() {
   const pathname = usePathname();
-  const { configured, loading, user, emailConfirmed } = useAuth();
+  const { loading, user, emailConfirmed } = useAuth();
   const onHome = pathname === "/";
 
   const signOut = async () => {
@@ -18,49 +18,14 @@ export function AccountNav() {
     window.location.href = "/connexion";
   };
 
-  if (!configured) {
-    return (
-      <div className="flex items-center gap-2">
-        {onHome && (
-          <>
-            <a
-              href="#protocole"
-              className="hidden text-muted-foreground hover:text-foreground sm:inline"
-            >
-              Protocole
-            </a>
-            <a
-              href="#mesure"
-              className="hidden rounded-lg border border-border px-3 py-1.5 hover:bg-muted sm:inline"
-            >
-              Mesurer
-            </a>
-          </>
-        )}
-        <Link
-          href="/connexion"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          Connexion
-        </Link>
-        <Link
-          href="/inscription"
-          className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
-        >
-          Inscription
-        </Link>
-      </div>
-    );
-  }
-
   if (loading) {
     return <span className="text-xs text-muted-foreground">Session…</span>;
   }
 
-  if (user) {
+  if (user && emailConfirmed) {
     return (
       <div className="flex items-center gap-2">
-        {emailConfirmed && onHome && (
+        {onHome && (
           <a
             href="#mesure"
             className="hidden rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85 sm:inline"
@@ -69,14 +34,27 @@ export function AccountNav() {
           </a>
         )}
         <span
-          className="hidden max-w-44 truncate text-xs sm:inline"
+          className="hidden max-w-44 truncate text-xs text-muted-foreground sm:inline"
           title={user.email ?? undefined}
         >
-          {emailConfirmed ? (
-            <span className="text-muted-foreground">{user.email}</span>
-          ) : (
-            <span className="text-amber-800">Confirmez {user.email}</span>
-          )}
+          {user.email}
+        </span>
+        <Button type="button" variant="outline" size="sm" onClick={() => void signOut()}>
+          <LogOut />
+          Déconnexion
+        </Button>
+      </div>
+    );
+  }
+
+  if (user && !emailConfirmed) {
+    return (
+      <div className="flex items-center gap-2">
+        <span
+          className="hidden max-w-44 truncate text-xs text-amber-800 sm:inline"
+          title={user.email ?? undefined}
+        >
+          Confirmez {user.email}
         </span>
         <Button type="button" variant="outline" size="sm" onClick={() => void signOut()}>
           <LogOut />

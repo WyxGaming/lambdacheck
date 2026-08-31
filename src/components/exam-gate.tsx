@@ -1,16 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ExamWorkspace } from "@/components/exam-workspace";
+
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 
-export function ExamGate() {
-  const { configured, loading, session, emailConfirmed } = useAuth();
+const ExamWorkspace = dynamic(
+  () =>
+    import("@/components/exam-workspace").then((mod) => mod.ExamWorkspace),
+  {
+    ssr: false,
+    loading: () => (
+      <p
+        id="mesure"
+        className="scroll-mt-24 rounded-xl border border-border/80 bg-card px-4 py-8 text-center text-sm text-muted-foreground"
+      >
+        Chargement du module de mesure…
+      </p>
+    ),
+  },
+);
 
-  if (!configured) {
-    return <ExamWorkspace />;
-  }
+export function ExamGate() {
+  const { loading, session, emailConfirmed } = useAuth();
 
   if (loading) {
     return (
@@ -29,11 +42,14 @@ export function ExamGate() {
         id="mesure"
         className="scroll-mt-24 rounded-xl border border-border/80 bg-card px-5 py-8 text-center shadow-sm"
       >
-        <h2 className="font-heading text-lg font-semibold">Compte clinicien requis</h2>
+        <h2 className="font-heading text-lg font-semibold">
+          Connexion obligatoire
+        </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-          Les mesures LambdaCheck sont réservées aux comptes confirmés. Créez un accès
-          avec votre e-mail professionnel, confirmez le lien reçu, puis connectez-vous.
-          Les photos restent locales au navigateur.
+          Le module de mesure n’est accessible qu’avec un compte clinicien
+          confirmé. Inscrivez-vous avec votre e-mail professionnel, ouvrez le
+          lien reçu, puis connectez-vous. Les photos restent dans le
+          navigateur.
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Button nativeButton={false} render={<Link href="/inscription" />}>
