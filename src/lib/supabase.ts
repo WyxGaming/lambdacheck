@@ -29,9 +29,25 @@ export function getSupabase(): SupabaseClient | null {
   return browserClient;
 }
 
+export const PRODUCTION_SITE_URL = "https://lambdacheck1.vercel.app";
+
+function siteOrigin(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      return window.location.origin;
+    }
+    if (window.location.origin.startsWith("http")) {
+      return window.location.origin;
+    }
+  }
+  return PRODUCTION_SITE_URL;
+}
+
 export function confirmationRedirectUrl(): string {
-  if (typeof window === "undefined") return "/confirmation";
-  return `${window.location.origin}/confirmation`;
+  return `${siteOrigin()}/confirmation`;
 }
 
 export function authErrorMessage(message: string): string {

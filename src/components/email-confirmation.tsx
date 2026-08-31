@@ -32,10 +32,12 @@ export function EmailConfirmation() {
     }
 
     const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const code = params.get("code");
-    const tokenHash = params.get("token_hash");
-    const otpType = params.get("type");
-    const errorDescription = params.get("error_description");
+    const tokenHash = params.get("token_hash") || hash.get("token_hash");
+    const otpType = params.get("type") || hash.get("type");
+    const errorDescription =
+      params.get("error_description") || hash.get("error_description");
     if (errorDescription) {
       setStatus("error");
       setDetail(decodeURIComponent(errorDescription.replace(/\+/g, " ")));
@@ -124,6 +126,23 @@ export function EmailConfirmation() {
           )}
           <p className="text-muted-foreground">{detail}</p>
         </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Si le lien a ouvert une page d’erreur du navigateur (souvent{" "}
+          <code>localhost:3000</code>), le Site URL du projet Supabase n’est pas
+          encore lambdacheck1. Dans{" "}
+          <a
+            className="text-primary underline-offset-4 hover:underline"
+            href="https://supabase.com/dashboard/project/itvpnzcemwnsmphqjrrr/auth/url-configuration"
+            target="_blank"
+            rel="noreferrer"
+          >
+            URL Configuration
+          </a>
+          , mettez Site URL à{" "}
+          <code>https://lambdacheck1.vercel.app</code> et Redirect URLs à{" "}
+          <code>https://lambdacheck1.vercel.app/confirmation</code>, puis
+          renvoyez l’e-mail depuis Connexion.
+        </p>
         <div className="flex flex-wrap gap-2">
           <Link
             href="/"

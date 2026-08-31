@@ -118,7 +118,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         }
         if (data.user && !data.session) {
           setInfo(
-            "Un e-mail de confirmation a été envoyé. Ouvrez le lien pour activer votre compte, puis connectez-vous.",
+            "Un e-mail de confirmation a été envoyé. Ouvrez le lien sur cet ordinateur. S’il tente d’ouvrir localhost et affiche « impossible d’accéder au site », le Site URL Supabase est encore en local : Authentication → URL Configuration → Site URL = https://lambdacheck1.vercel.app, puis renvoyez le mail.",
           );
           return;
         }

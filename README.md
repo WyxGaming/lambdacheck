@@ -27,9 +27,12 @@ Dans le tableau de bord Supabase :
 - Authentication → **Sign In / Providers** → Email : **Confirm email** activé
   (il n’y a plus un menu nommé seulement « Providers »)
 - Project Settings (engrenage) → **API** : copier Project URL et la clé anon public
-- Authentication → URL Configuration → Redirect URLs :
-  - `https://lambdacheck1.vercel.app/confirmation`
-  - `http://127.0.0.1:43127/confirmation`
+- Authentication → **URL Configuration** (pas le menu Sign In / Providers) :
+  - Site URL : `https://lambdacheck1.vercel.app`
+  - Redirect URLs :
+    - `https://lambdacheck1.vercel.app/confirmation`
+    - `http://127.0.0.1:43127/confirmation`
+  Sans ça, le lien de confirmation ouvre `localhost:3000` et le navigateur affiche « impossible d’accéder au site ».
 
 ## Confidentialité
 
