@@ -649,22 +649,22 @@ function EyeResult({
           </dd>
         </div>
         <div>
-          <dt>Correctopie H</dt>
+          <dt>Pupil shift H</dt>
           <dd className="text-foreground tabular-nums">
-            {formatMm(measurement.correctopieMm)}{" "}
+            {formatMm(measurement.pupilShiftMm)}{" "}
             <span className="text-muted-foreground">
-              ({lateralityLabel(measurement.correctopieLaterality)})
+              ({lateralityLabel(measurement.pupilShiftLaterality)})
             </span>
           </dd>
         </div>
         <div>
-          <dt>Correctopie V</dt>
+          <dt>Pupil shift V</dt>
           <dd className="text-foreground tabular-nums">
             {measurement.vertical ? (
               <>
-                {formatMm(measurement.vertical.correctopieMm)}{" "}
+                {formatMm(measurement.vertical.pupilShiftMm)}{" "}
                 <span className="text-muted-foreground">
-                  ({lateralityLabel(measurement.vertical.correctopieLaterality)})
+                  ({lateralityLabel(measurement.vertical.pupilShiftLaterality)})
                 </span>
               </>
             ) : (
@@ -795,11 +795,11 @@ function formatEyeLine(eye: EyeSide, measurement: EyeMeasurement): string {
   if (measurement.status !== "ok") {
     return `${eye} : mesure incomplète`;
   }
-  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}, ${physiologicalLabel(measurement.physiological)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · correctopie H = ${formatMm(measurement.correctopieMm)} (${lateralityLabel(measurement.correctopieLaterality)})`;
+  const horizontal = `${eye} : λh = ${formatDeg(measurement.angleLambdaDeg, true)} / ${formatMm(measurement.angleLambdaMm, true)} (${lateralityLabel(measurement.laterality)}, ${physiologicalLabel(measurement.physiological)}) · Øh = ${formatMm(measurement.pupilDiameterMm)} · pupil shift H = ${formatMm(measurement.pupilShiftMm)} (${lateralityLabel(measurement.pupilShiftLaterality)})`;
   if (!measurement.vertical || !measurement.oblique) {
     return `${horizontal} · λv : incomplet`;
   }
-  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · élévation P1 = ${measurement.purkinjeElevationDeg != null ? `${formatDeg(measurement.purkinjeElevationDeg, true)} (${lateralityLabel(elevationLaterality(measurement.purkinjeElevationDeg))})` : "—"} · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · correctopie V = ${formatMm(measurement.vertical.correctopieMm)} (${lateralityLabel(measurement.vertical.correctopieLaterality)})`;
+  return `${horizontal} · λv = ${formatDeg(measurement.vertical.angleLambdaDeg, true)} / ${formatMm(measurement.vertical.angleLambdaMm, true)} (${lateralityLabel(measurement.vertical.laterality)}, ${physiologicalLabel(measurement.vertical.physiological)}) · λoblique = ${formatDeg(measurement.oblique.angleLambdaDeg)} / ${formatMm(measurement.oblique.angleLambdaMm)} (${obliqueLateralityLabel(measurement.laterality, measurement.vertical.laterality)}, ${physiologicalLabel(measurement.oblique.physiological)}) · élévation P1 = ${measurement.purkinjeElevationDeg != null ? `${formatDeg(measurement.purkinjeElevationDeg, true)} (${lateralityLabel(elevationLaterality(measurement.purkinjeElevationDeg))})` : "—"} · Øv = ${formatMm(measurement.vertical.pupilDiameterMm)} · pupil shift V = ${formatMm(measurement.vertical.pupilShiftMm)} (${lateralityLabel(measurement.vertical.pupilShiftLaterality)})`;
 }
 
 function parseOptionalMm(raw: string): number | null {

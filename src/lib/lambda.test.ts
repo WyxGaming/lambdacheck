@@ -29,7 +29,7 @@ import {
   withAlignedLimbus,
 } from "./lambda.ts";
 
-test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python", () => {
+test("KappaView : λ, Ø pupillaire et pupil shift identiques au script Python", () => {
   const pixels = {
     corneeNltl: 400,
     pupilNptp: 150,
@@ -43,14 +43,14 @@ test("KappaView : λ, Ø pupillaire et correctopie identiques au script Python",
 
   const ratio = 60 / 150;
   const diam = ((11.71 * 150) / 400) * PUPIL_APPARENT_FACTOR;
-  const correctopie = (400 / 2 - (150 / 2 + 125)) * (11.71 / 400);
+  const pupilShift = (400 / 2 - (150 / 2 + 125)) * (11.71 / 400);
   const expectedAngle =
     ((Math.atan((diam / 2 - ratio * diam) / 3.4) * 180) / Math.PI) * LAMBDA_GAIN +
     LAMBDA_OFFSET;
 
   assert.equal(result.ratioLambda, ratio);
   assert.equal(result.pupilDiameterMm.toFixed(6), diam.toFixed(6));
-  assert.equal(result.correctopieMm.toFixed(6), correctopie.toFixed(6));
+  assert.equal(result.pupilShiftMm.toFixed(6), pupilShift.toFixed(6));
   assert.equal(result.angleLambdaDeg.toFixed(6), expectedAngle.toFixed(6));
 });
 
@@ -94,7 +94,7 @@ test("OS : reflet nasal au centre pupillaire → λ positif", () => {
   assert.ok(measurement.angleLambdaDeg > 0);
 });
 
-test("Purkinje au centre géométrique : ratio λ = 0,5 et correctopie nulle si pupille centrée", () => {
+test("Purkinje au centre géométrique : ratio λ = 0,5 et pupil shift nul si pupille centrée", () => {
   const landmarks = {
     limbusNasal: { x: 0, y: 100 },
     limbusTemporal: { x: 400, y: 100 },
@@ -113,7 +113,7 @@ test("Purkinje au centre géométrique : ratio λ = 0,5 et correctopie nulle si 
   assert.equal(measurement.status, "ok");
   if (measurement.status !== "ok") return;
   assert.equal(measurement.ratioLambda, 0.5);
-  assert.equal(measurement.correctopieMm.toFixed(4), "0.0000");
+  assert.equal(measurement.pupilShiftMm.toFixed(4), "0.0000");
   assert.equal(measurement.laterality, "centred");
   assert.equal(
     measurement.angleLambdaDeg.toFixed(4),

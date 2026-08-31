@@ -154,7 +154,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T. Correctopie : excentration du centre pupillaire par rapport au centre cornéen.",
+    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -171,7 +171,7 @@ export type KappaViewPixels = {
 export type KappaViewResult = {
   angleLambdaDeg: number;
   pupilDiameterMm: number;
-  correctopieMm: number;
+  pupilShiftMm: number;
   ratioLambda: number;
   reflexOffsetMm: number;
 };
@@ -181,7 +181,7 @@ export type KappaViewResult = {
  *
  * ratio_lambda = NPPI / pupil_NPTP
  * diam_pupil   = (WtW * pupil_NPTP / cornee_NLTL) * 0.86
- * correctopie  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
+ * pupil_shift  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
  * angle_lambda = degrees(atan(((diam_pupil/2) - ratio_lambda * diam_pupil) / DAC)) * 1.0455 - 0.0329
  */
 export function computeAngleLambda(
@@ -192,7 +192,7 @@ export function computeAngleLambda(
   const pupilDiameterMm =
     ((scale.wtwMm * pixels.pupilNptp) / pixels.corneeNltl) *
     PUPIL_APPARENT_FACTOR;
-  const correctopieMm =
+  const pupilShiftMm =
     (pixels.corneeNltl / 2 - (pixels.pupilNptp / 2 + pixels.irisNasal)) *
     (scale.wtwMm / pixels.corneeNltl);
   const reflexOffsetMm = pupilDiameterMm / 2 - ratioLambda * pupilDiameterMm;
@@ -203,7 +203,7 @@ export function computeAngleLambda(
   return {
     angleLambdaDeg,
     pupilDiameterMm,
-    correctopieMm,
+    pupilShiftMm,
     ratioLambda,
     reflexOffsetMm,
   };
@@ -221,11 +221,11 @@ export type AxisMeasurement = {
   angleLambdaAbsDeg: number;
   angleLambdaMm: number;
   pupilDiameterMm: number;
-  correctopieMm: number;
+  pupilShiftMm: number;
   ratioLambda: number;
   reflexOffsetMm: number;
   laterality: Laterality;
-  correctopieLaterality: Laterality;
+  pupilShiftLaterality: Laterality;
   physiological: boolean;
   prismDiopters: number;
   warnings: string[];
@@ -254,11 +254,11 @@ export type EyeMeasurement =
       /** Angle photo P1 / horizontale, depuis le centre pupillaire. + = supérieur. */
       purkinjeElevationDeg: number | null;
       pupilDiameterMm: number;
-      correctopieMm: number;
+      pupilShiftMm: number;
       ratioLambda: number;
       reflexOffsetMm: number;
       laterality: Laterality;
-      correctopieLaterality: Laterality;
+      pupilShiftLaterality: Laterality;
       physiological: boolean;
       angleLambdaDeg: number;
       angleLambdaAbsDeg: number;
@@ -727,10 +727,10 @@ function axisFromComputation(
       : computation.reflexOffsetMm > 0
         ? positive
         : negative;
-  const correctopieLaterality: Laterality =
-    Math.abs(computation.correctopieMm) < centredThresholdMm
+  const pupilShiftLaterality: Laterality =
+    Math.abs(computation.pupilShiftMm) < centredThresholdMm
       ? "centred"
-      : computation.correctopieMm > 0
+      : computation.pupilShiftMm > 0
         ? positive
         : negative;
 
@@ -763,11 +763,11 @@ function axisFromComputation(
     angleLambdaAbsDeg: Math.abs(computation.angleLambdaDeg),
     angleLambdaMm: scale.dacMm * Math.tan(rad),
     pupilDiameterMm: computation.pupilDiameterMm,
-    correctopieMm: computation.correctopieMm,
+    pupilShiftMm: computation.pupilShiftMm,
     ratioLambda: computation.ratioLambda,
     reflexOffsetMm: computation.reflexOffsetMm,
     laterality,
-    correctopieLaterality,
+    pupilShiftLaterality,
     physiological: isPhysiologicalAngle(laterality, computation.angleLambdaDeg),
     prismDiopters: 100 * Math.tan(rad),
     warnings,
@@ -872,11 +872,11 @@ export function measureEye(
     oblique,
     purkinjeElevationDeg: purkinjeElevation,
     pupilDiameterMm: horizontal.pupilDiameterMm,
-    correctopieMm: horizontal.correctopieMm,
+    pupilShiftMm: horizontal.pupilShiftMm,
     ratioLambda: horizontal.ratioLambda,
     reflexOffsetMm: horizontal.reflexOffsetMm,
     laterality: horizontal.laterality,
-    correctopieLaterality: horizontal.correctopieLaterality,
+    pupilShiftLaterality: horizontal.pupilShiftLaterality,
     physiological: horizontal.physiological,
     angleLambdaDeg: horizontal.angleLambdaDeg,
     angleLambdaAbsDeg: horizontal.angleLambdaAbsDeg,
