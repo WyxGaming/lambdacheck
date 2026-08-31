@@ -20,7 +20,7 @@ export function AccountNav() {
 
   if (!configured) {
     return (
-      <>
+      <div className="flex items-center gap-2">
         {onHome && (
           <>
             <a
@@ -31,13 +31,25 @@ export function AccountNav() {
             </a>
             <a
               href="#mesure"
-              className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
+              className="hidden rounded-lg border border-border px-3 py-1.5 hover:bg-muted sm:inline"
             >
               Mesurer
             </a>
           </>
         )}
-      </>
+        <Link
+          href="/connexion"
+          className="text-muted-foreground hover:text-foreground"
+        >
+          Connexion
+        </Link>
+        <Link
+          href="/inscription"
+          className="rounded-lg bg-primary px-3 py-1.5 text-primary-foreground hover:bg-primary/85"
+        >
+          Inscription
+        </Link>
+      </div>
     );
   }
 
