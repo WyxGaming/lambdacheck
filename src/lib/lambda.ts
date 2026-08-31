@@ -154,7 +154,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). λh et λv : P1 projeté sur PN–PT et PS–PI depuis leur intersection. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
+    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). λh et λv : P1 projeté sur PN–PT et PS–PI depuis le milieu du segment PN–PT. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -179,7 +179,7 @@ export type KappaViewResult = {
 /**
  * Formule KappaView4 (Necker-Enfants malades).
  *
- * ratio_lambda = 0,5 − (C→P1) / (axe pupillaire), C = intersection PN–PT / PS–PI
+ * ratio_lambda = 0,5 − (C→P1) / (axe pupillaire), C = milieu du segment PN–PT
  * diam_pupil   = (WtW * pupil_NPTP / cornee_NLTL) * 0.86
  * pupil_shift  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
  * angle_lambda = degrees(atan(((diam_pupil/2) - ratio_lambda * diam_pupil) / DAC)) * 1.0455 - 0.0329
@@ -577,7 +577,15 @@ function syncVerticalLimbusToCornea(landmarks: EyeLandmarks): EyeLandmarks {
   return next;
 }
 
-/** Centre pupillaire : intersection des droites PN–PT et PS–PI. */
+/** Milieu du segment PN–PT : origine de λh et λv. */
+export function pupilSegmentCenter(landmarks: EyeLandmarks): Point | null {
+  const nasal = landmarks.pupilNasal;
+  const temporal = landmarks.pupilTemporal;
+  if (!nasal || !temporal) return null;
+  return midpoint(nasal, temporal);
+}
+
+/** Centre pupillaire géométrique : intersection des droites PN–PT et PS–PI. */
 export function derivedPupilCenter(landmarks: EyeLandmarks): Point | null {
   const nasal = landmarks.pupilNasal;
   const temporal = landmarks.pupilTemporal;
@@ -669,7 +677,7 @@ export function extractKappaViewPixels(landmarks: EyeLandmarks): KappaViewPixels
   const pupilNasal = landmarks.pupilNasal;
   const pupilTemporal = landmarks.pupilTemporal;
   const reflex = landmarks.cornealReflex;
-  const pupilCenter = derivedPupilCenter(landmarks);
+  const pupilCenter = pupilSegmentCenter(landmarks);
   if (!limbusNasal || !limbusTemporal || !pupilNasal || !pupilTemporal || !reflex || !pupilCenter) {
     return null;
   }
@@ -690,7 +698,7 @@ export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels 
   const pupilSuperior = landmarks.pupilSuperior;
   const pupilInferior = landmarks.pupilInferior;
   const reflex = landmarks.cornealReflex;
-  const pupilCenter = derivedPupilCenter(landmarks);
+  const pupilCenter = pupilSegmentCenter(landmarks);
   if (
     !limbusSuperior ||
     !limbusInferior ||
@@ -721,7 +729,7 @@ export function measurePurkinjeElevation(
   landmarks: EyeLandmarks,
 ): number | null {
   const reflex = landmarks.cornealReflex;
-  const center = derivedPupilCenter(landmarks);
+  const center = pupilSegmentCenter(landmarks);
   if (!reflex || !center) return null;
   return purkinjeElevationDeg(center, reflex);
 }

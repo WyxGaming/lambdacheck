@@ -12,6 +12,7 @@ import {
   REFERENCE_WTW_MM,
   applyLandmarkConstraints,
   computeAngleLambda,
+  pupilSegmentCenter,
   derivedPupilCenter,
   distanceToEllipse,
   elevationFromHorizontal,
@@ -456,7 +457,7 @@ test("λ vertical projette P1 sur l’axe pupillaire PS–PI, pas sur la cornée
   );
 });
 
-test("λh et λv sont pris depuis l’intersection PN–PT / PS–PI, pas le milieu des cordes", () => {
+test("λh et λv sont pris depuis le milieu du segment PN–PT", () => {
   const landmarks = {
     limbusTemporal: { x: 100, y: 200 },
     limbusNasal: { x: 340, y: 200 },
@@ -466,39 +467,39 @@ test("λh et λv sont pris depuis l’intersection PN–PT / PS–PI, pas le mil
     pupilNasal: { x: 300, y: 200 },
     pupilSuperior: { x: 180, y: 100 },
     pupilInferior: { x: 180, y: 260 },
-    cornealReflex: { x: 180, y: 200 },
+    cornealReflex: { x: 220, y: 200 },
   };
-  const center = derivedPupilCenter(landmarks);
+  const center = pupilSegmentCenter(landmarks);
   assert.ok(center);
-  assert.equal(center!.x.toFixed(3), "180.000");
+  assert.equal(center!.x.toFixed(3), "220.000");
   assert.equal(center!.y.toFixed(3), "200.000");
 
-  const atCenter = measureEye("OD", landmarks, DEFAULT_PARAMS);
-  assert.equal(atCenter.status, "ok");
-  if (atCenter.status !== "ok") return;
-  assert.equal(atCenter.laterality, "centred");
-  assert.ok(atCenter.vertical);
-  assert.equal(atCenter.vertical!.laterality, "centred");
+  const atMid = measureEye("OD", landmarks, DEFAULT_PARAMS);
+  assert.equal(atMid.status, "ok");
+  if (atMid.status !== "ok") return;
+  assert.equal(atMid.laterality, "centred");
+  assert.ok(atMid.vertical);
+  assert.equal(atMid.vertical!.laterality, "centred");
 
-  const atHorizontalMid = measureEye(
+  const atCrossing = measureEye(
     "OD",
-    { ...landmarks, cornealReflex: { x: 220, y: 200 } },
+    { ...landmarks, cornealReflex: { x: 180, y: 200 } },
     DEFAULT_PARAMS,
   );
-  assert.equal(atHorizontalMid.status, "ok");
-  if (atHorizontalMid.status !== "ok") return;
-  assert.equal(atHorizontalMid.laterality, "nasal");
-  assert.ok(atHorizontalMid.angleLambdaDeg > 0);
-  assert.equal(atHorizontalMid.vertical!.laterality, "centred");
+  assert.equal(atCrossing.status, "ok");
+  if (atCrossing.status !== "ok") return;
+  assert.equal(atCrossing.laterality, "temporal");
+  assert.ok(atCrossing.angleLambdaDeg < 0);
+  assert.equal(atCrossing.vertical!.laterality, "centred");
 
-  const atVerticalMid = measureEye(
+  const superiorOfMid = measureEye(
     "OD",
-    { ...landmarks, cornealReflex: { x: 180, y: 180 } },
+    { ...landmarks, cornealReflex: { x: 220, y: 180 } },
     DEFAULT_PARAMS,
   );
-  assert.equal(atVerticalMid.status, "ok");
-  if (atVerticalMid.status !== "ok") return;
-  assert.equal(atVerticalMid.laterality, "centred");
-  assert.equal(atVerticalMid.vertical!.laterality, "superior");
-  assert.ok(atVerticalMid.vertical!.angleLambdaDeg > 0);
+  assert.equal(superiorOfMid.status, "ok");
+  if (superiorOfMid.status !== "ok") return;
+  assert.equal(superiorOfMid.laterality, "centred");
+  assert.equal(superiorOfMid.vertical!.laterality, "superior");
+  assert.ok(superiorOfMid.vertical!.angleLambdaDeg > 0);
 });

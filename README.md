@@ -52,20 +52,20 @@ npm test    # vérifie le calcul et la géométrie
 ## Formule (KappaView4)
 
 ```
-C           = intersection (PN–PT) ∩ (PS–PI)
+C           = milieu du segment PN–PT
 ratio_λ     = 0,5 − (C→P1 sur l’axe) / pupille
 Ø pupille   = (WtW × pupil_NPTP / cornee_NLTL) × 0.86
 pupil shift = ((cornee_NLTL/2) − (pupil_NPTP/2 + iris_nasal)) × (WtW / cornee_NLTL)
 λ           = 1.0455 × atan((Øp/2 − ratio_λ × Øp) / DAC) − 0.0329
 ```
 
-(`atan` en degrés. λh sur PN–PT, λv sur PS–PI, tous deux depuis C.)
+(`atan` en degrés. λh sur PN–PT, λv sur PS–PI, tous deux depuis le milieu de PN–PT.)
 
 | Grandeur photo | Curseurs |
 | --- | --- |
 | `cornee_NLTL` (WtW) | limbe nasal → limbe temporal |
 | `pupil_NPTP` | bord pupillaire nasal → bord pupillaire temporal |
-| `C` | intersection PN–PT / PS–PI |
+| `C` | milieu du segment PN–PT |
 | `C→P1` | centre pupillaire → reflet de Purkinje, projeté sur l’axe |
 | `iris_nasal` | limbe nasal → bord pupillaire nasal |
 
