@@ -12,6 +12,7 @@ import {
   REFERENCE_WTW_MM,
   applyLandmarkConstraints,
   computeAngleLambda,
+  derivedPupilCenter,
   distanceToEllipse,
   elevationFromHorizontal,
   extractKappaViewPixels,
@@ -453,4 +454,51 @@ test("λ vertical projette P1 sur l’axe pupillaire PS–PI, pas sur la cornée
     measurement.vertical!.angleLambdaDeg.toFixed(6),
     expected.angleLambdaDeg.toFixed(6),
   );
+});
+
+test("λh et λv sont pris depuis l’intersection PN–PT / PS–PI, pas le milieu des cordes", () => {
+  const landmarks = {
+    limbusTemporal: { x: 100, y: 200 },
+    limbusNasal: { x: 340, y: 200 },
+    limbusSuperior: { x: 180, y: 60 },
+    limbusInferior: { x: 180, y: 340 },
+    pupilTemporal: { x: 140, y: 200 },
+    pupilNasal: { x: 300, y: 200 },
+    pupilSuperior: { x: 180, y: 100 },
+    pupilInferior: { x: 180, y: 260 },
+    cornealReflex: { x: 180, y: 200 },
+  };
+  const center = derivedPupilCenter(landmarks);
+  assert.ok(center);
+  assert.equal(center!.x.toFixed(3), "180.000");
+  assert.equal(center!.y.toFixed(3), "200.000");
+
+  const atCenter = measureEye("OD", landmarks, DEFAULT_PARAMS);
+  assert.equal(atCenter.status, "ok");
+  if (atCenter.status !== "ok") return;
+  assert.equal(atCenter.laterality, "centred");
+  assert.ok(atCenter.vertical);
+  assert.equal(atCenter.vertical!.laterality, "centred");
+
+  const atHorizontalMid = measureEye(
+    "OD",
+    { ...landmarks, cornealReflex: { x: 220, y: 200 } },
+    DEFAULT_PARAMS,
+  );
+  assert.equal(atHorizontalMid.status, "ok");
+  if (atHorizontalMid.status !== "ok") return;
+  assert.equal(atHorizontalMid.laterality, "nasal");
+  assert.ok(atHorizontalMid.angleLambdaDeg > 0);
+  assert.equal(atHorizontalMid.vertical!.laterality, "centred");
+
+  const atVerticalMid = measureEye(
+    "OD",
+    { ...landmarks, cornealReflex: { x: 180, y: 180 } },
+    DEFAULT_PARAMS,
+  );
+  assert.equal(atVerticalMid.status, "ok");
+  if (atVerticalMid.status !== "ok") return;
+  assert.equal(atVerticalMid.laterality, "centred");
+  assert.equal(atVerticalMid.vertical!.laterality, "superior");
+  assert.ok(atVerticalMid.vertical!.angleLambdaDeg > 0);
 });

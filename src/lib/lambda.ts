@@ -154,7 +154,7 @@ export const FORMULA = {
   expression: "λ = 1,0455 × atan((Øp/2 − ratioλ × Øp) / DAC) − 0,0329",
   status: "kappaview" as const,
   notes:
-    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). ratioλ = NPPI / pupille N–T. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
+    "WtW : diamètre cornéen saisi par le clinicien, sinon 11,71 mm ; sur la photo il correspond à limbe nasal – limbe temporal. DAC : saisie clinicien, sinon 3,4 mm. Øp = 0,86 × WtW × (pupille N–T / cornée N–T). λh et λv : P1 projeté sur PN–PT et PS–PI depuis leur intersection. Pupil shift : excentration du centre pupillaire par rapport au centre cornéen.",
 };
 
 export type KappaViewPixels = {
@@ -179,7 +179,7 @@ export type KappaViewResult = {
 /**
  * Formule KappaView4 (Necker-Enfants malades).
  *
- * ratio_lambda = NPPI / pupil_NPTP
+ * ratio_lambda = 0,5 − (C→P1) / (axe pupillaire), C = intersection PN–PT / PS–PI
  * diam_pupil   = (WtW * pupil_NPTP / cornee_NLTL) * 0.86
  * pupil_shift  = ((cornee_NLTL/2) - (pupil_NPTP/2 + taille_iris_nasal)) * (WtW / cornee_NLTL)
  * angle_lambda = degrees(atan(((diam_pupil/2) - ratio_lambda * diam_pupil) / DAC)) * 1.0455 - 0.0329
@@ -577,7 +577,7 @@ function syncVerticalLimbusToCornea(landmarks: EyeLandmarks): EyeLandmarks {
   return next;
 }
 
-/** Centre pupillaire : intersection des axes N–T et S–I. */
+/** Centre pupillaire : intersection des droites PN–PT et PS–PI. */
 export function derivedPupilCenter(landmarks: EyeLandmarks): Point | null {
   const nasal = landmarks.pupilNasal;
   const temporal = landmarks.pupilTemporal;
@@ -630,22 +630,58 @@ export function projectedAlong(
   );
 }
 
+/** Distance signée du centre pupillaire à P1, positive vers pupilPositive (PN ou PS). */
+export function reflexOffsetFromPupilCenter(
+  center: Point,
+  reflex: Point,
+  pupilPositive: Point,
+  pupilNegative: Point,
+): number {
+  return projectedAlong(center, reflex, pupilNegative, pupilPositive);
+}
+
+function pixelsFromPupilCenter(
+  corneaSpan: number,
+  pupilPositive: Point,
+  pupilNegative: Point,
+  center: Point,
+  reflex: Point,
+  irisNasal: number,
+): KappaViewPixels {
+  const pupilNptp = distance(pupilPositive, pupilNegative);
+  const offsetFromCenter = reflexOffsetFromPupilCenter(
+    center,
+    reflex,
+    pupilPositive,
+    pupilNegative,
+  );
+  return {
+    corneeNltl: corneaSpan,
+    pupilNptp,
+    nppi: pupilNptp / 2 - offsetFromCenter,
+    irisNasal,
+  };
+}
+
 export function extractKappaViewPixels(landmarks: EyeLandmarks): KappaViewPixels | null {
   const limbusNasal = landmarks.limbusNasal;
   const limbusTemporal = landmarks.limbusTemporal;
   const pupilNasal = landmarks.pupilNasal;
   const pupilTemporal = landmarks.pupilTemporal;
   const reflex = landmarks.cornealReflex;
-  if (!limbusNasal || !limbusTemporal || !pupilNasal || !pupilTemporal || !reflex) {
+  const pupilCenter = derivedPupilCenter(landmarks);
+  if (!limbusNasal || !limbusTemporal || !pupilNasal || !pupilTemporal || !reflex || !pupilCenter) {
     return null;
   }
 
-  return {
-    corneeNltl: distance(limbusNasal, limbusTemporal),
-    pupilNptp: projectedAlong(pupilNasal, pupilTemporal, limbusNasal, limbusTemporal),
-    nppi: projectedAlong(pupilNasal, reflex, limbusNasal, limbusTemporal),
-    irisNasal: projectedAlong(limbusNasal, pupilNasal, limbusNasal, limbusTemporal),
-  };
+  return pixelsFromPupilCenter(
+    distance(limbusNasal, limbusTemporal),
+    pupilNasal,
+    pupilTemporal,
+    pupilCenter,
+    reflex,
+    projectedAlong(limbusNasal, pupilNasal, limbusNasal, limbusTemporal),
+  );
 }
 
 export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels | null {
@@ -666,22 +702,19 @@ export function extractVerticalPixels(landmarks: EyeLandmarks): KappaViewPixels 
     return null;
   }
 
-  return {
-    corneeNltl: distance(limbusSuperior, limbusInferior),
-    pupilNptp: projectedAlong(
-      pupilSuperior,
-      pupilInferior,
-      pupilSuperior,
-      pupilInferior,
-    ),
-    nppi: projectedAlong(pupilSuperior, reflex, pupilSuperior, pupilInferior),
-    irisNasal: projectedAlong(
+  return pixelsFromPupilCenter(
+    distance(limbusSuperior, limbusInferior),
+    pupilSuperior,
+    pupilInferior,
+    pupilCenter,
+    reflex,
+    projectedAlong(
       limbusSuperior,
       pupilSuperior,
       pupilSuperior,
       pupilInferior,
     ),
-  };
+  );
 }
 
 export function measurePurkinjeElevation(

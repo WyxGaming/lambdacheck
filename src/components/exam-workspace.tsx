@@ -170,8 +170,8 @@ export function ExamWorkspace() {
           <p className="mt-2 max-w-2xl text-muted-foreground">
             Importez ou déposez une photo par œil. Posez LN et LT, puis
             LS et LI par deux clics (même axe vertical, hauteurs
-            indépendantes). λ vertical, λ oblique et l’élévation de P1
-            partent du centre pupillaire.
+            indépendantes). λh et λv sont pris depuis l’intersection
+            PN–PT / PS–PI.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -470,8 +470,8 @@ function ResultsCard({
         <CardTitle>Angle lambda</CardTitle>
         <CardDescription>
           {patientRef ? `Patient ${patientRef} · ` : null}
-          Un œil puis l’autre · λ horizontal, vertical, oblique, et
-          élévation de P1 depuis le centre pupillaire.
+          Un œil puis l’autre · λh et λv depuis l’intersection PN–PT /
+          PS–PI, λ oblique et élévation de P1.
           Physiologique : 0 à 3° en nasal, jusqu’à 0,60° ailleurs.
         </CardDescription>
       </CardHeader>
