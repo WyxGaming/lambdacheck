@@ -61,7 +61,7 @@ export function SiteHeader({ className }: { className?: string }) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur-md",
+        "sticky top-0 z-40 border-b border-primary bg-background",
         className,
       )}
     >
@@ -144,7 +144,7 @@ export function AffiliationLogos({
 
 export function SiteFooter() {
   return (
-    <footer id="affiliations" className="scroll-mt-24 border-t border-border bg-card">
+    <footer id="affiliations" className="scroll-mt-24 border-t border-primary bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
         <div>
           <p className="text-center text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">

@@ -34,7 +34,7 @@ function Intro() {
       </div>
       <details
         id="protocole"
-        className="w-full max-w-md rounded-2xl border border-border bg-card px-4 py-3 text-sm scroll-mt-24"
+        className="w-full max-w-md rounded-2xl border border-primary bg-background px-4 py-3 text-sm scroll-mt-24"
       >
         <summary className="cursor-pointer font-medium">
           Protocole photo (monoculaire)
