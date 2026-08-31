@@ -593,7 +593,7 @@ export function PhotoAnnotator({
     <div className="space-y-3">
       <div
         ref={containerRef}
-        className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#0b1211] ring-1 ring-foreground/10"
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-[#0b1211] ring-1 ring-primary"
       >
         {imageUrl && (
           <img

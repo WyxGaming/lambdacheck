@@ -220,13 +220,13 @@ export function ExamWorkspace() {
                 <TabsTrigger value="OD" className="px-4">
                   Œil droit · OD
                   {odMeasure.status === "ok" && (
-                    <span className="ml-1.5 size-1.5 rounded-full bg-teal-600" />
+                    <span className="ml-1.5 size-1.5 rounded-full bg-primary" />
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="OS" className="px-4">
                   Œil gauche · OS
                   {osMeasure.status === "ok" && (
-                    <span className="ml-1.5 size-1.5 rounded-full bg-teal-600" />
+                    <span className="ml-1.5 size-1.5 rounded-full bg-primary" />
                   )}
                 </TabsTrigger>
               </TabsList>
@@ -441,7 +441,7 @@ function LandmarkPicker({
                       />
                       {index + 1}. {meta.short}
                     </span>
-                    {placed && <Check className="size-3.5 text-teal-700" />}
+                    {placed && <Check className="size-3.5 text-primary" />}
                   </div>
                   <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
                     {meta.label}
